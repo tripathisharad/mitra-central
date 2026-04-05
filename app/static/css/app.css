@@ -1,0 +1,45 @@
+/* Small custom styles on top of Tailwind CDN */
+html, body { height: 100%; }
+body { -webkit-font-smoothing: antialiased; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Data table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.data-table th {
+  text-align: left; font-weight: 600; color: #475569;
+  background: #f8fafc; padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0; position: sticky; top: 0;
+}
+.data-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.data-table tr:hover td { background: #f8fafc; }
+.table-wrap { max-height: 420px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
+
+/* Code / SQL block */
+.sql-block {
+  background: #0f172a; color: #e2e8f0;
+  padding: 0.875rem 1rem; border-radius: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem; overflow-x: auto; white-space: pre;
+}
+
+/* KPI cards */
+.kpi-card {
+  background: linear-gradient(135deg, #eef4ff 0%, #dbe6ff 100%);
+  border: 1px solid #bcd0ff; border-radius: 1rem; padding: 1.25rem;
+}
+.kpi-card .label { font-size: 0.75rem; color: #1e32b4; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-card .value { font-size: 1.75rem; font-weight: 700; color: #1b2a72; margin-top: 0.25rem; }
+
+/* Followup chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.75rem; border: 1px solid #e2e8f0;
+  border-radius: 9999px; font-size: 0.75rem; color: #475569;
+  background: white; cursor: pointer;
+}
+.chip:hover { border-color: #5f83ff; color: #253fe0; background: #eef4ff; }
