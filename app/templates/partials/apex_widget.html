@@ -1,0 +1,67 @@
+<!-- Apex floating RAG chatbot -->
+<div x-data="apexWidget()" x-init="init()" class="fixed bottom-6 right-6 z-50">
+  <!-- launcher -->
+  <button x-show="!open" @click="toggle()"
+          class="h-14 w-14 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-2xl shadow-brand-500/40 flex items-center justify-center hover:scale-105 transition"
+          title="Ask Apex">
+    <i data-lucide="sparkles" class="w-6 h-6"></i>
+  </button>
+
+  <!-- panel -->
+  <div x-show="open" x-transition
+       class="w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+    <div class="h-14 px-4 flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-brand-600 to-brand-700 text-white">
+      <div class="flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+        <div>
+          <div class="font-semibold leading-tight">Apex</div>
+          <div class="text-[10px] opacity-80">User guide assistant</div>
+        </div>
+      </div>
+      <button @click="toggle()" class="p-1 hover:bg-white/10 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+
+    <!-- Domain picker (shown once per session) -->
+    <div x-show="needsDomain" class="p-5 space-y-3">
+      <p class="text-sm text-slate-700">What best describes your question?</p>
+      <div class="space-y-2">
+        <template x-for="d in ['sales','purchase','manufacturing']" :key="d">
+          <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+            <input type="checkbox" :value="d" x-model="selectedDomains" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+            <span class="text-sm capitalize" x-text="d"></span>
+          </label>
+        </template>
+      </div>
+      <button @click="confirmDomains()"
+              :disabled="selectedDomains.length === 0"
+              :class="selectedDomains.length === 0 ? 'opacity-40 cursor-not-allowed' : ''"
+              class="w-full bg-brand-600 text-white rounded-lg py-2 font-medium text-sm">Continue</button>
+    </div>
+
+    <!-- Messages -->
+    <div x-show="!needsDomain" class="flex-1 overflow-y-auto p-4 space-y-3" x-ref="msgs">
+      <template x-for="(m, i) in messages" :key="i">
+        <div :class="m.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+          <div :class="m.role === 'user'
+                         ? 'bg-brand-600 text-white'
+                         : 'bg-slate-100 text-slate-800'"
+               class="rounded-2xl px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap" x-text="m.text"></div>
+        </div>
+      </template>
+      <div x-show="loading" class="flex justify-start">
+        <div class="bg-slate-100 rounded-2xl px-4 py-2 text-sm text-slate-500">Thinking…</div>
+      </div>
+    </div>
+
+    <div x-show="!needsDomain" class="p-3 border-t border-slate-200">
+      <form @submit.prevent="send()" class="flex gap-2">
+        <input x-model="input" type="text" placeholder="Ask about user guides…"
+               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <button type="submit" :disabled="!input.trim() || loading"
+                class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-3 rounded-lg">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
