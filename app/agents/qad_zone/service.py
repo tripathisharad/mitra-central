@@ -208,7 +208,6 @@ async def _handle_modernisation(ws: WebSocket, question: str, session_id: str) -
 
 async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
     """Main WebSocket handler for QAD-Zone (3 modes)."""
-    await ws.accept()
     try:
         while True:
             data = await ws.receive_json()

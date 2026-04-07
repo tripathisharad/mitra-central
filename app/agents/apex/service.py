@@ -40,7 +40,6 @@ DOCUMENTATION CHUNKS:
 
 async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
     """Main WebSocket handler for Apex. Reads messages and streams answers."""
-    await ws.accept()
     try:
         while True:
             data = await ws.receive_json()

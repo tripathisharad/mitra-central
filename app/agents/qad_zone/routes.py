@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from itsdangerous import URLSafeTimedSerializer
 
 from app.agents.qad_zone.service import handle_qadzone_ws
 from app.agents.registry import sidebar_agents
@@ -11,6 +12,18 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/agents/qadzone", tags=["qadzone"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _parse_ws_user(ws: WebSocket) -> dict | None:
+    cookie = ws.cookies.get(settings.session_cookie_name)
+    if not cookie:
+        return None
+    try:
+        s = URLSafeTimedSerializer(settings.app_secret_key)
+        session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
+        return session_data.get("user")
+    except Exception:
+        return None
 
 
 @router.get("", response_class=HTMLResponse)
@@ -33,21 +46,12 @@ async def qadzone_page(request: Request):
 
 @router.websocket("/ws")
 async def qadzone_ws(ws: WebSocket):
-    from itsdangerous import URLSafeTimedSerializer
-    cookie = ws.cookies.get(settings.session_cookie_name)
-    if not cookie:
+    user = _parse_ws_user(ws)
+    if not user:
+        await ws.accept()
         await ws.close(code=4001, reason="unauthenticated")
         return
-    try:
-        s = URLSafeTimedSerializer(settings.app_secret_key)
-        session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
-        user = session_data.get("user")
-        if not user:
-            await ws.close(code=4001, reason="unauthenticated")
-            return
-    except Exception:
-        await ws.close(code=4001, reason="invalid session")
-        return
+    await ws.accept()
     try:
         await handle_qadzone_ws(ws, user["session_id"], user)
     except WebSocketDisconnect:
