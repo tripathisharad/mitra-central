@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     session_cookie_name: str = "mitra_session"
     session_ttl_seconds: int = 28800
 
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    # QAD
+    qad_domain: str = "INDIA"
+    default_row_limit: int = 50
 
     # ODBC
     odbc_dsn: str = "QAD_PROGRESS"
@@ -30,12 +31,19 @@ class Settings(BaseSettings):
     odbc_password: str = ""
     odbc_connection_string: str = ""
 
-    # n8n webhooks
-    n8n_webhook_mitra: str = ""
-    n8n_webhook_apex: str = ""
-    n8n_webhook_visual: str = ""
-    n8n_webhook_qadzone: str = ""
-    n8n_timeout_seconds: int = 60
+    # LLM — OpenAI (quality tasks: SQL gen, RAG answers, doc gen)
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+    openai_embed_model: str = "text-embedding-3-large"
+
+    # LLM — Groq (free fast tasks: classification, table-ID, routing)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    # Qdrant
+    qdrant_url: str = ""
+    qdrant_api_key: str = ""
+    qdrant_collection_apex: str = "apex-normal"
 
 
 @lru_cache

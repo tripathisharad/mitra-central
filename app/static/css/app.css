@@ -1,4 +1,4 @@
-/* Small custom styles on top of Tailwind CDN */
+/* Mitra Central — custom styles on top of Tailwind CDN */
 html, body { height: 100%; }
 body { -webkit-font-smoothing: antialiased; }
 
@@ -40,6 +40,39 @@ body { -webkit-font-smoothing: antialiased; }
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.4rem 0.75rem; border: 1px solid #e2e8f0;
   border-radius: 9999px; font-size: 0.75rem; color: #475569;
-  background: white; cursor: pointer;
+  background: white; cursor: pointer; transition: all 0.15s;
 }
 .chip:hover { border-color: #5f83ff; color: #253fe0; background: #eef4ff; }
+
+/* Prose container — markdown output styling */
+.prose-container h1, .prose-container h2, .prose-container h3 { font-weight: 600; color: #1e293b; margin-top: 1rem; margin-bottom: 0.5rem; }
+.prose-container h1 { font-size: 1.25rem; }
+.prose-container h2 { font-size: 1.1rem; }
+.prose-container h3 { font-size: 1rem; }
+.prose-container p { margin-bottom: 0.5rem; line-height: 1.6; }
+.prose-container ul, .prose-container ol { padding-left: 1.5rem; margin-bottom: 0.5rem; }
+.prose-container li { margin-bottom: 0.25rem; }
+.prose-container code {
+  background: #f1f5f9; padding: 0.15rem 0.35rem; border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em; color: #1e32b4;
+}
+.prose-container pre {
+  background: #0f172a; color: #e2e8f0;
+  padding: 0.875rem 1rem; border-radius: 0.75rem;
+  font-size: 0.78rem; overflow-x: auto; margin: 0.75rem 0;
+}
+.prose-container pre code { background: transparent; padding: 0; color: inherit; }
+.prose-container a { color: #3a5cfa; text-decoration: underline; }
+.prose-container a:hover { color: #1e32b4; }
+.prose-container blockquote {
+  border-left: 3px solid #bcd0ff; padding-left: 1rem;
+  color: #64748b; margin: 0.75rem 0;
+}
+.prose-container table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+.prose-container th { background: #f8fafc; font-weight: 600; text-align: left; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; }
+.prose-container td { padding: 0.5rem; border-bottom: 1px solid #f1f5f9; }
+
+/* Streaming cursor */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.animate-blink { animation: blink 1s steps(1) infinite; }

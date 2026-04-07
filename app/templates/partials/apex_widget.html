@@ -1,4 +1,4 @@
-<!-- Apex floating RAG chatbot -->
+<!-- Apex floating RAG chatbot — WebSocket streaming -->
 <div x-data="apexWidget()" x-init="init()" class="fixed bottom-6 right-6 z-50">
   <!-- launcher -->
   <button x-show="!open" @click="toggle()"
@@ -23,7 +23,7 @@
 
     <!-- Domain picker (shown once per session) -->
     <div x-show="needsDomain" class="p-5 space-y-3">
-      <p class="text-sm text-slate-700">What best describes your question?</p>
+      <p class="text-sm text-slate-700">What area are you working in?</p>
       <div class="space-y-2">
         <template x-for="d in ['sales','purchase','manufacturing']" :key="d">
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
@@ -45,18 +45,28 @@
           <div :class="m.role === 'user'
                          ? 'bg-brand-600 text-white'
                          : 'bg-slate-100 text-slate-800'"
-               class="rounded-2xl px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap" x-text="m.text"></div>
+               class="rounded-2xl px-4 py-2 max-w-[85%] text-sm">
+            <div x-html="m.html || m.text" class="whitespace-pre-wrap"></div>
+          </div>
         </div>
       </template>
-      <div x-show="loading" class="flex justify-start">
-        <div class="bg-slate-100 rounded-2xl px-4 py-2 text-sm text-slate-500">Thinking…</div>
+      <!-- Streaming -->
+      <div x-show="streaming" class="flex justify-start">
+        <div class="bg-slate-100 text-slate-800 rounded-2xl px-4 py-2 max-w-[85%] text-sm">
+          <div x-html="currentHtml" class="whitespace-pre-wrap"></div>
+          <span class="inline-block w-1 h-3 bg-brand-500 animate-pulse align-middle"></span>
+        </div>
+      </div>
+      <div x-show="loading && !streaming" class="flex justify-start">
+        <div class="bg-slate-100 rounded-2xl px-4 py-2 text-sm text-slate-500">Thinking...</div>
       </div>
     </div>
 
     <div x-show="!needsDomain" class="p-3 border-t border-slate-200">
       <form @submit.prevent="send()" class="flex gap-2">
-        <input x-model="input" type="text" placeholder="Ask about user guides…"
-               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input x-model="input" type="text" placeholder="Ask about user guides..."
+               :disabled="loading"
+               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
         <button type="submit" :disabled="!input.trim() || loading"
                 class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-3 rounded-lg">
           <i data-lucide="send" class="w-4 h-4"></i>
