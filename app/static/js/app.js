@@ -374,11 +374,15 @@ function apexWidget() {
       this.currentSources = null;
       this.currentFollowups = null;
 
-      const ws = new WebSocket(buildWsUrl("/agents/apex/ws"));
+      const wsUrl = buildWsUrl("/agents/apex/ws");
+      console.log("[Apex] Opening WS:", wsUrl);
+      const ws = new WebSocket(wsUrl);
       this.ws = ws;
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ question: q, domains: this.selectedDomains }));
+        const payload = { question: q, domains: this.selectedDomains };
+        console.log("[Apex] Sending:", payload);
+        ws.send(JSON.stringify(payload));
       };
 
       ws.onmessage = (evt) => {
@@ -410,11 +414,13 @@ function apexWidget() {
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (e) => {
+        console.error("[Apex] WS error:", e);
         this._finish('<span class="text-red-600">Connection error.</span>');
       };
 
-      ws.onclose = () => {
+      ws.onclose = (e) => {
+        console.log("[Apex] WS closed:", e.code, e.reason);
         if (this.loading) this._finish(this._buildHtml());
       };
     },
