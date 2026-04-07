@@ -61,17 +61,39 @@ async def search_chunks(
 
     # Run synchronous Qdrant search in a thread to avoid blocking the event loop
     loop = asyncio.get_event_loop()
-    results = await loop.run_in_executor(
-        None,
-        partial(
-            client.search,
-            collection_name=coll,
-            query_vector=vector,
-            query_filter=query_filter,
-            limit=top_k,
-            with_payload=True,
-        ),
-    )
+    try:
+        results = await loop.run_in_executor(
+            None,
+            partial(
+                client.search,
+                collection_name=coll,
+                query_vector=vector,
+                query_filter=query_filter,
+                limit=top_k,
+                with_payload=True,
+            ),
+        )
+    except Exception as exc:
+        # If filter failed due to missing payload index, retry without filter.
+        # Permanent fix: run create_qdrant_index.py once to create the index.
+        if query_filter is not None and "Index required" in str(exc):
+            logger.warning(
+                "Qdrant 'module' filter failed (payload index missing). "
+                "Retrying without filter. Run create_qdrant_index.py to fix permanently."
+            )
+            results = await loop.run_in_executor(
+                None,
+                partial(
+                    client.search,
+                    collection_name=coll,
+                    query_vector=vector,
+                    query_filter=None,
+                    limit=top_k,
+                    with_payload=True,
+                ),
+            )
+        else:
+            raise
 
     logger.info("Qdrant returned %d results", len(results))
     chunks = []
