@@ -232,4 +232,9 @@ async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
             await send_done(ws)
 
     except Exception as exc:
-        logger.debug("QAD-Zone WS closed: %s", exc)
+        logger.exception("QAD-Zone WS error: %s", exc)
+        try:
+            await send_error(ws, str(exc))
+            await send_done(ws)
+        except Exception:
+            pass

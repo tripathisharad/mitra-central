@@ -127,4 +127,9 @@ async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
             await send_done(ws)
 
     except Exception as exc:
-        logger.debug("Apex WS closed: %s", exc)
+        logger.exception("Apex WS error: %s", exc)
+        try:
+            await send_error(ws, str(exc))
+            await send_done(ws)
+        except Exception:
+            pass

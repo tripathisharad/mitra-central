@@ -164,4 +164,9 @@ async def handle_visual_ws(ws: WebSocket, session_id: str, user: dict) -> None:
             await send_done(ws)
 
     except Exception as exc:
-        logger.debug("Visual WS closed: %s", exc)
+        logger.exception("Visual WS error: %s", exc)
+        try:
+            await send_error(ws, str(exc))
+            await send_done(ws)
+        except Exception:
+            pass
