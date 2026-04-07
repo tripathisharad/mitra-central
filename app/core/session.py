@@ -1,38 +1,67 @@
-"""Per-agent conversation session helpers built on top of Redis.
+"""In-memory per-agent conversation session store.
 
-Each (user_session_id, agent_key) pair gets its own history list in Redis so
-that follow-up questions maintain context per-agent.
+No external dependencies (no Redis). Uses cachetools TTLCache so entries
+expire automatically. If the app restarts, sessions reset.
+
+Each (user_session_id, agent_key) pair gets its own history list and
+optional context dict.
 """
 from __future__ import annotations
 
+import threading
+from typing import Any
+
+from cachetools import TTLCache
+
 from app.core.config import settings
-from app.core.redis_client import get_history, get_json, push_history, set_json
+
+_lock = threading.Lock()
+
+# Max 2000 session keys, each lives for session_ttl_seconds
+_store: TTLCache = TTLCache(maxsize=2000, ttl=settings.session_ttl_seconds)
 
 
-def _history_key(session_id: str, agent_key: str) -> str:
-    return f"mitra:hist:{agent_key}:{session_id}"
+def _key(session_id: str, agent_key: str, suffix: str = "hist") -> str:
+    return f"{agent_key}:{session_id}:{suffix}"
 
 
-def _context_key(session_id: str, agent_key: str) -> str:
-    return f"mitra:ctx:{agent_key}:{session_id}"
+def append_turn(session_id: str, agent_key: str, turn: dict) -> None:
+    k = _key(session_id, agent_key, "hist")
+    with _lock:
+        hist: list = _store.get(k, [])
+        hist.append(turn)
+        if len(hist) > 30:
+            hist = hist[-30:]
+        _store[k] = hist
 
 
-async def append_turn(session_id: str, agent_key: str, turn: dict) -> None:
-    await push_history(
-        _history_key(session_id, agent_key),
-        turn,
-        max_len=30,
-        ttl=settings.session_ttl_seconds,
-    )
+def load_history(session_id: str, agent_key: str) -> list[dict]:
+    k = _key(session_id, agent_key, "hist")
+    with _lock:
+        return list(_store.get(k, []))
 
 
-async def load_history(session_id: str, agent_key: str) -> list[dict]:
-    return await get_history(_history_key(session_id, agent_key))
+def set_context(session_id: str, agent_key: str, ctx: dict) -> None:
+    k = _key(session_id, agent_key, "ctx")
+    with _lock:
+        _store[k] = ctx
 
 
-async def set_context(session_id: str, agent_key: str, ctx: dict) -> None:
-    await set_json(_context_key(session_id, agent_key), ctx, ttl=settings.session_ttl_seconds)
+def get_context(session_id: str, agent_key: str) -> dict[str, Any] | None:
+    k = _key(session_id, agent_key, "ctx")
+    with _lock:
+        return _store.get(k)
 
 
-async def get_context(session_id: str, agent_key: str) -> dict | None:
-    return await get_json(_context_key(session_id, agent_key))
+def get_user_settings(session_id: str) -> dict:
+    k = f"settings:{session_id}"
+    with _lock:
+        return _store.get(k, {"row_limit": settings.default_row_limit})
+
+
+def set_user_settings(session_id: str, data: dict) -> None:
+    k = f"settings:{session_id}"
+    with _lock:
+        current = _store.get(k, {"row_limit": settings.default_row_limit})
+        current.update(data)
+        _store[k] = current

@@ -1,8 +1,4 @@
-"""Authentication routes — login, role selection, logout.
-
-Phase 1: credentials are hardcoded in settings. Role is stored in the signed
-session cookie and used to personalise suggested questions per agent.
-"""
+"""Authentication routes — login, role selection, logout, settings."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Form, Request
@@ -10,6 +6,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.core.security import new_session_id, verify_credentials
+from app.core.session import get_user_settings, set_user_settings
+from app.agents.registry import sidebar_agents
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -70,3 +68,36 @@ async def roles_post(request: Request):
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login", status_code=303)
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    user_settings = get_user_settings(user["session_id"])
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "user": user,
+        "agents": sidebar_agents(),
+        "active": "settings",
+        "row_limit": user_settings.get("row_limit", 50),
+        "success": False,
+    })
+
+
+@router.post("/settings", response_class=HTMLResponse)
+async def settings_save(request: Request, row_limit: int = Form(50)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    row_limit = max(1, min(500, row_limit))
+    set_user_settings(user["session_id"], {"row_limit": row_limit})
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "user": user,
+        "agents": sidebar_agents(),
+        "active": "settings",
+        "row_limit": row_limit,
+        "success": True,
+    })

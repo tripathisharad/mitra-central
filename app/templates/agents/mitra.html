@@ -3,7 +3,7 @@
 {% block body %}
 <div class="h-full flex">
   {% include "partials/sidebar.html" %}
-  <div class="flex-1 flex flex-col" x-data="mitraChat('{{ agent.route_prefix }}/ask')">
+  <div class="flex-1 flex flex-col" x-data="wsChat('{{ agent.route_prefix }}/ws', 'mitra')">
     {% include "partials/chat_shell.html" %}
   </div>
 </div>

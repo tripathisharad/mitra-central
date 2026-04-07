@@ -1,5 +1,5 @@
-<!-- Shared chat layout used by main-area agents (Mitra, Visual, QAD-Zone).
-     Agent-specific rendering is delegated to a JS renderer loaded per page. -->
+<!-- Shared chat layout for main-area agents (Mitra, Visual, QAD-Zone).
+     Uses WebSocket streaming. The parent div must set x-data with the appropriate wsChat() call. -->
 <div class="h-full flex flex-col">
   <header class="h-16 shrink-0 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -11,10 +11,11 @@
         <div class="text-xs text-slate-500">{{ agent.description }}</div>
       </div>
     </div>
+    {% block header_extra %}{% endblock %}
   </header>
 
   <main class="flex-1 overflow-y-auto px-6 py-6" x-ref="msgs">
-    <!-- Suggestions shown on empty state -->
+    <!-- Empty state -->
     <template x-if="messages.length === 0">
       <div class="max-w-3xl mx-auto">
         <div class="text-center py-10">
@@ -52,22 +53,35 @@
           </template>
           <!-- assistant -->
           <template x-if="m.role === 'assistant'">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5" x-html="m.html"></div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 prose-container" x-html="m.html"></div>
           </template>
         </div>
       </template>
-      <div x-show="loading" class="flex items-center gap-2 text-slate-500 text-sm">
+
+      <!-- Streaming indicator -->
+      <div x-show="streaming" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+          <span x-text="statusText"></span>
+        </div>
+        <div class="prose-container" x-html="currentHtml"></div>
+        <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
+      </div>
+
+      <div x-show="loading && !streaming" class="flex items-center gap-2 text-slate-500 text-sm">
         <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-        <span>Thinking…</span>
+        <span>Thinking...</span>
       </div>
     </div>
   </main>
 
   <footer class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
     <div class="max-w-4xl mx-auto">
+      {% block input_extra %}{% endblock %}
       <form @submit.prevent="send()" class="flex gap-2">
-        <input x-model="input" type="text" placeholder="Ask {{ agent.name }}…"
-               class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input x-model="input" type="text" placeholder="Ask {{ agent.name }}..."
+               :disabled="loading"
+               class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
         <button type="submit" :disabled="!input.trim() || loading"
                 class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-5 rounded-xl font-medium flex items-center gap-2">
           <i data-lucide="send" class="w-4 h-4"></i>
