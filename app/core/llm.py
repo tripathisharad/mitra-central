@@ -144,6 +144,7 @@ async def openai_stream(
 
 async def openai_embed(text: str) -> list[float]:
     """Generate embedding via OpenAI text-embedding-3-large."""
+    logger.info("Embedding text (%d chars) with model=%s", len(text), settings.openai_embed_model)
     payload = {
         "model": settings.openai_embed_model,
         "input": text,
@@ -154,8 +155,11 @@ async def openai_embed(text: str) -> list[float]:
     }
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(_OPENAI_EMBED_URL, json=payload, headers=headers)
+        if resp.status_code != 200:
+            logger.error("OpenAI embed failed: %s %s", resp.status_code, resp.text)
         resp.raise_for_status()
         data = resp.json()
+        logger.info("Embedding returned %d dimensions", len(data["data"][0]["embedding"]))
         return data["data"][0]["embedding"]
 
 

@@ -5,7 +5,9 @@ Qdrant collection with optional metadata filters.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+from functools import partial
 from typing import Any
 
 from qdrant_client import QdrantClient
@@ -22,9 +24,11 @@ _client: QdrantClient | None = None
 def get_qdrant() -> QdrantClient:
     global _client
     if _client is None:
+        logger.info("Connecting to Qdrant at %s", settings.qdrant_url)
         _client = QdrantClient(
             url=settings.qdrant_url,
             api_key=settings.qdrant_api_key,
+            timeout=30,
         )
     return _client
 
@@ -38,6 +42,7 @@ async def search_chunks(
 ) -> list[dict[str, Any]]:
     """Embed query and search Qdrant. Returns list of {text, metadata, score}."""
     coll = collection or settings.qdrant_collection_apex
+    logger.info("Embedding query for Qdrant search...")
     vector = await openai_embed(query)
 
     query_filter = None
@@ -52,14 +57,23 @@ async def search_chunks(
         )
 
     client = get_qdrant()
-    results = client.search(
-        collection_name=coll,
-        query_vector=vector,
-        query_filter=query_filter,
-        limit=top_k,
-        with_payload=True,
+    logger.info("Searching Qdrant collection=%s, filter=%s, top_k=%d", coll, modules, top_k)
+
+    # Run synchronous Qdrant search in a thread to avoid blocking the event loop
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(
+        None,
+        partial(
+            client.search,
+            collection_name=coll,
+            query_vector=vector,
+            query_filter=query_filter,
+            limit=top_k,
+            with_payload=True,
+        ),
     )
 
+    logger.info("Qdrant returned %d results", len(results))
     chunks = []
     for r in results:
         payload = r.payload or {}

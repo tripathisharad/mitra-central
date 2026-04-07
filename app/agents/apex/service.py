@@ -40,9 +40,12 @@ DOCUMENTATION CHUNKS:
 
 async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
     """Main WebSocket handler for Apex. Reads messages and streams answers."""
+    logger.info("Apex WS handler started for session %s", session_id)
     try:
         while True:
+            logger.debug("Waiting for message...")
             data = await ws.receive_json()
+            logger.info("Apex received: %s", data)
             question = (data.get("question") or "").strip()
             if not question:
                 await send_error(ws, "Question is required")
@@ -59,6 +62,7 @@ async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                 domains = ctx.get("domains", [])
 
             await send_status(ws, "Searching documentation...")
+            logger.info("Searching Qdrant: collection=%s, modules=%s", settings.qdrant_collection_apex, domains)
 
             try:
                 chunks = await search_chunks(
@@ -67,6 +71,7 @@ async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                     modules=domains if domains else None,
                     top_k=10,
                 )
+                logger.info("Qdrant returned %d chunks", len(chunks))
             except Exception as exc:
                 logger.exception("Qdrant search failed")
                 await send_error(ws, f"Search failed: {exc}")
