@@ -6,32 +6,33 @@ from fastapi.responses import JSONResponse
 
 from app.agents.apex.service import handle_apex_ws
 from app.core.session import get_context
+from app.core.config import settings
 
 router = APIRouter(prefix="/agents/apex", tags=["apex"])
 
 
-@router.websocket("/ws")
-async def apex_ws(ws: WebSocket):
-    cookie = ws.cookies.get("mitra_session")
-    if not cookie:
-        await ws.close(code=4001, reason="unauthenticated")
-        return
-    # Session data is in the signed cookie — parse via Starlette
-    from starlette.middleware.sessions import SessionMiddleware
+def _parse_ws_user(ws: WebSocket) -> dict | None:
+    """Extract user from signed session cookie on WebSocket."""
     from itsdangerous import URLSafeTimedSerializer
-    from app.core.config import settings
-
+    cookie = ws.cookies.get(settings.session_cookie_name)
+    if not cookie:
+        return None
     try:
         s = URLSafeTimedSerializer(settings.app_secret_key)
         session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
-        user = session_data.get("user")
-        if not user:
-            await ws.close(code=4001, reason="unauthenticated")
-            return
+        return session_data.get("user")
     except Exception:
-        await ws.close(code=4001, reason="invalid session")
-        return
+        return None
 
+
+@router.websocket("/ws")
+async def apex_ws(ws: WebSocket):
+    user = _parse_ws_user(ws)
+    if not user:
+        await ws.accept()
+        await ws.close(code=4001, reason="unauthenticated")
+        return
+    await ws.accept()
     try:
         await handle_apex_ws(ws, user["session_id"], user)
     except WebSocketDisconnect:

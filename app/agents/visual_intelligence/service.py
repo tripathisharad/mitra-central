@@ -84,7 +84,6 @@ async def _identify_tables(question: str) -> list[str]:
 
 
 async def handle_visual_ws(ws: WebSocket, session_id: str, user: dict) -> None:
-    await ws.accept()
     try:
         while True:
             data = await ws.receive_json()

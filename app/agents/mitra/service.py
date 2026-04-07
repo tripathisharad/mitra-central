@@ -113,7 +113,6 @@ def _build_history_text(history: list[dict]) -> str:
 
 async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
     """Main WebSocket handler for Mitra text-to-SQL agent."""
-    await ws.accept()
     try:
         while True:
             data = await ws.receive_json()

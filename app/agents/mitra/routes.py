@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from itsdangerous import URLSafeTimedSerializer
 
 from app.agents.mitra.service import handle_mitra_ws
 from app.agents.registry import sidebar_agents
@@ -47,6 +48,18 @@ def _get_suggestions(roles: list[str]) -> list[str]:
     return [q for q in out if not (q in seen or seen.add(q))][:8]
 
 
+def _parse_ws_user(ws: WebSocket) -> dict | None:
+    cookie = ws.cookies.get(settings.session_cookie_name)
+    if not cookie:
+        return None
+    try:
+        s = URLSafeTimedSerializer(settings.app_secret_key)
+        session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
+        return session_data.get("user")
+    except Exception:
+        return None
+
+
 @router.get("", response_class=HTMLResponse)
 async def mitra_page(request: Request):
     user = request.session.get("user")
@@ -68,21 +81,12 @@ async def mitra_page(request: Request):
 
 @router.websocket("/ws")
 async def mitra_ws(ws: WebSocket):
-    from itsdangerous import URLSafeTimedSerializer
-    cookie = ws.cookies.get(settings.session_cookie_name)
-    if not cookie:
+    user = _parse_ws_user(ws)
+    if not user:
+        await ws.accept()
         await ws.close(code=4001, reason="unauthenticated")
         return
-    try:
-        s = URLSafeTimedSerializer(settings.app_secret_key)
-        session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
-        user = session_data.get("user")
-        if not user:
-            await ws.close(code=4001, reason="unauthenticated")
-            return
-    except Exception:
-        await ws.close(code=4001, reason="invalid session")
-        return
+    await ws.accept()
     try:
         await handle_mitra_ws(ws, user["session_id"], user)
     except WebSocketDisconnect:
