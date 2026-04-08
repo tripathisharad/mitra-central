@@ -1,0 +1,325 @@
+ADD TABLE "xxdoah_hist"
+  AREA "DATA"
+  CAN-CREATE "!odbcuser,!odbcread,!monitor,!support,!,*"
+  CAN-DELETE "!odbcuser,!odbcread,!monitor,!support,!,*"
+  CAN-READ "!,*"
+  CAN-WRITE "!odbcuser,!odbcread,!monitor,!support,!,*"
+  CAN-DUMP "!,*"
+  CAN-LOAD "!,*"
+  LABEL "DOA History Master"
+  DESCRIPTION "DOA History Master"
+  FROZEN
+  DUMP-NAME "xxdoah_hist"
+
+ADD FIELD "xxdoah_domain" OF "xxdoah_hist" AS character 
+  FORMAT "x(8)"
+  INITIAL ""
+  LABEL "Domain"
+  POSITION 2
+  MAX-WIDTH 16
+  ORDER 10
+
+ADD FIELD "xxdoah_type" OF "xxdoah_hist" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Rule Type"
+  POSITION 3
+  MAX-WIDTH 80
+  ORDER 20
+
+ADD FIELD "xxdoah_Action" OF "xxdoah_hist" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Action"
+  POSITION 4
+  MAX-WIDTH 80
+  ORDER 30
+
+ADD FIELD "xxdoah_DateTime" OF "xxdoah_hist" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "DateTime"
+  POSITION 5
+  MAX-WIDTH 60
+  ORDER 40
+
+ADD FIELD "xxdoah_currappr" OF "xxdoah_hist" AS character 
+  FORMAT "x(50)"
+  INITIAL ""
+  LABEL "Current Approver"
+  POSITION 6
+  MAX-WIDTH 100
+  ORDER 50
+
+ADD FIELD "xxdoah_LastModifiedDate" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  LABEL "Last Modified Date"
+  POSITION 7
+  MAX-WIDTH 16
+  ORDER 60
+
+ADD FIELD "xxdoah_LastModifiedTime" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Last Modified Time"
+  POSITION 8
+  MAX-WIDTH 8
+  ORDER 70
+
+ADD FIELD "xxdoah_LastModifiedUser" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  LABEL "Last Modified User"
+  POSITION 9
+  MAX-WIDTH 48
+  ORDER 80
+
+ADD FIELD "xxdoah__chr01" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 10
+  MAX-WIDTH 48
+  ORDER 90
+
+ADD FIELD "xxdoah__chr02" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 11
+  MAX-WIDTH 48
+  ORDER 100
+
+ADD FIELD "xxdoah__chr03" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 12
+  MAX-WIDTH 48
+  ORDER 110
+
+ADD FIELD "xxdoah__chr04" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 13
+  MAX-WIDTH 48
+  ORDER 120
+
+ADD FIELD "xxdoah__chr05" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 14
+  MAX-WIDTH 48
+  ORDER 130
+
+ADD FIELD "xxdoah__chr06" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 15
+  MAX-WIDTH 48
+  ORDER 140
+
+ADD FIELD "xxdoah__chr07" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 16
+  MAX-WIDTH 48
+  ORDER 150
+
+ADD FIELD "xxdoah__chr08" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 17
+  MAX-WIDTH 48
+  ORDER 160
+
+ADD FIELD "xxdoah__chr09" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 18
+  MAX-WIDTH 48
+  ORDER 170
+
+ADD FIELD "xxdoah__chr10" OF "xxdoah_hist" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 19
+  MAX-WIDTH 48
+  ORDER 180
+
+ADD FIELD "xxdoah__int01" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 20
+  MAX-WIDTH 18
+  ORDER 190
+
+ADD FIELD "xxdoah__int02" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 21
+  MAX-WIDTH 18
+  ORDER 200
+
+ADD FIELD "xxdoah__int03" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 22
+  MAX-WIDTH 18
+  ORDER 210
+
+ADD FIELD "xxdoah__int04" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 23
+  MAX-WIDTH 18
+  ORDER 220
+
+ADD FIELD "xxdoah__int05" OF "xxdoah_hist" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 24
+  MAX-WIDTH 18
+  ORDER 230
+
+ADD FIELD "xxdoah__dec01" OF "xxdoah_hist" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 25
+  MAX-WIDTH 44
+  ORDER 240
+
+ADD FIELD "xxdoah__dec02" OF "xxdoah_hist" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 26
+  MAX-WIDTH 44
+  ORDER 250
+
+ADD FIELD "xxdoah__dec03" OF "xxdoah_hist" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 27
+  MAX-WIDTH 44
+  ORDER 260
+
+ADD FIELD "xxdoah__dec04" OF "xxdoah_hist" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 28
+  MAX-WIDTH 44
+  ORDER 270
+
+ADD FIELD "xxdoah__dec05" OF "xxdoah_hist" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 29
+  MAX-WIDTH 44
+  ORDER 280
+
+ADD FIELD "xxdoah__log01" OF "xxdoah_hist" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 30
+  MAX-WIDTH 12
+  ORDER 290
+
+ADD FIELD "xxdoah__log02" OF "xxdoah_hist" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 31
+  MAX-WIDTH 12
+  ORDER 300
+
+ADD FIELD "xxdoah__log03" OF "xxdoah_hist" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 32
+  MAX-WIDTH 12
+  ORDER 310
+
+ADD FIELD "xxdoah__log04" OF "xxdoah_hist" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 33
+  MAX-WIDTH 12
+  ORDER 320
+
+ADD FIELD "xxdoah__log05" OF "xxdoah_hist" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 34
+  MAX-WIDTH 12
+  ORDER 330
+
+ADD FIELD "xxdoah__date01" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 35
+  MAX-WIDTH 16
+  ORDER 340
+
+ADD FIELD "xxdoah__date02" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 36
+  MAX-WIDTH 16
+  ORDER 350
+
+ADD FIELD "xxdoah__date03" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 37
+  MAX-WIDTH 16
+  ORDER 360
+
+ADD FIELD "xxdoah__date04" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 38
+  MAX-WIDTH 16
+  ORDER 370
+
+ADD FIELD "xxdoah__date05" OF "xxdoah_hist" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 39
+  MAX-WIDTH 16
+  ORDER 380
+
+ADD FIELD "xxdoah_nextappr" OF "xxdoah_hist" AS character 
+  FORMAT "x(50)"
+  INITIAL ""
+  LABEL "Next Approver"
+  POSITION 40
+  MAX-WIDTH 100
+  ORDER 390
+
+ADD FIELD "xxdoah_Comment" OF "xxdoah_hist" AS character 
+  FORMAT "x(200)"
+  INITIAL ""
+  LABEL "Comment"
+  POSITION 41
+  MAX-WIDTH 100
+  ORDER 400
+
+ADD FIELD "xxdoah_nbr" OF "xxdoah_hist" AS character 
+  FORMAT "x(8)"
+  INITIAL ""
+  LABEL "Number"
+  POSITION 42
+  MAX-WIDTH 8
+  ORDER 410
+
+ADD INDEX "xxdoah_domtypeact" ON "xxdoah_hist" 
+  AREA "DATA_IDX"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "xxdoah_domain" ASCENDING 
+  INDEX-FIELD "xxdoah_type" ASCENDING 
+  INDEX-FIELD "xxdoah_DateTime" ASCENDING 
+  INDEX-FIELD "xxdoah_nbr" ASCENDING 
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000006266

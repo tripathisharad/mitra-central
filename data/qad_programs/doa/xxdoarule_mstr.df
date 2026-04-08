@@ -1,0 +1,334 @@
+ADD TABLE "xxdoarule_mstr"
+  AREA "DATA"
+  LABEL "DOA Rule Master"
+  DESCRIPTION "DOA Rule Master"
+  DUMP-NAME "xxdoarule_mstr"
+
+ADD FIELD "xxdoarule_domain" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(8)"
+  INITIAL ""
+  LABEL "Domain"
+  POSITION 2
+  MAX-WIDTH 16
+  ORDER 10
+
+ADD FIELD "xxdoarule_code" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Rule Code"
+  POSITION 3
+  MAX-WIDTH 80
+  ORDER 20
+
+ADD FIELD "xxdoarule_type" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Rule Type"
+  POSITION 4
+  MAX-WIDTH 80
+  ORDER 30
+
+ADD FIELD "xxdoarule_active" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Active"
+  POSITION 5
+  MAX-WIDTH 12
+  ORDER 40
+
+ADD FIELD "xxdoarule_businessline" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Business Line"
+  POSITION 6
+  MAX-WIDTH 80
+  ORDER 50
+
+ADD FIELD "xxdoarule_site" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "Site"
+  POSITION 7
+  MAX-WIDTH 60
+  ORDER 60
+
+ADD FIELD "xxdoarule_rule" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "DOA Rule"
+  POSITION 8
+  MAX-WIDTH 60
+  EXTENT 15
+  ORDER 70
+
+ADD FIELD "xxdoarule_approvers" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "Approvers"
+  POSITION 9
+  MAX-WIDTH 60
+  EXTENT 10
+  ORDER 80
+
+ADD FIELD "xxdoarule_notifyto" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "Notify To"
+  POSITION 10
+  MAX-WIDTH 60
+  EXTENT 10
+  ORDER 90
+
+ADD FIELD "xxdoarule_LastModifiedDate" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  LABEL "Last Modified Date"
+  POSITION 11
+  MAX-WIDTH 16
+  ORDER 100
+
+ADD FIELD "xxdoarule_LastModifiedTime" OF "xxdoarule_mstr" AS integer 
+  FORMAT ">>>9"
+  INITIAL "0"
+  LABEL "Last Modified Time"
+  POSITION 12
+  MAX-WIDTH 8
+  ORDER 110
+
+ADD FIELD "xxdoarule_LastModifiedUser" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  LABEL "Last Modified User"
+  POSITION 13
+  MAX-WIDTH 48
+  ORDER 120
+
+ADD FIELD "xxdoarule__chr01" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 14
+  MAX-WIDTH 48
+  ORDER 130
+
+ADD FIELD "xxdoarule__chr02" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 15
+  MAX-WIDTH 48
+  ORDER 140
+
+ADD FIELD "xxdoarule__chr03" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 16
+  MAX-WIDTH 48
+  ORDER 150
+
+ADD FIELD "xxdoarule__chr04" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 17
+  MAX-WIDTH 48
+  ORDER 160
+
+ADD FIELD "xxdoarule__chr05" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 18
+  MAX-WIDTH 48
+  ORDER 170
+
+ADD FIELD "xxdoarule__chr06" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 19
+  MAX-WIDTH 48
+  ORDER 180
+
+ADD FIELD "xxdoarule__chr07" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 20
+  MAX-WIDTH 48
+  ORDER 190
+
+ADD FIELD "xxdoarule__chr08" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 21
+  MAX-WIDTH 48
+  ORDER 200
+
+ADD FIELD "xxdoarule__chr09" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 22
+  MAX-WIDTH 48
+  ORDER 210
+
+ADD FIELD "xxdoarule__chr10" OF "xxdoarule_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 23
+  MAX-WIDTH 48
+  ORDER 220
+
+ADD FIELD "xxdoarule__int01" OF "xxdoarule_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 24
+  MAX-WIDTH 18
+  ORDER 230
+
+ADD FIELD "xxdoarule__int02" OF "xxdoarule_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 25
+  MAX-WIDTH 18
+  ORDER 240
+
+ADD FIELD "xxdoarule__int03" OF "xxdoarule_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 26
+  MAX-WIDTH 18
+  ORDER 250
+
+ADD FIELD "xxdoarule__int04" OF "xxdoarule_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 27
+  MAX-WIDTH 18
+  ORDER 260
+
+ADD FIELD "xxdoarule__int05" OF "xxdoarule_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 28
+  MAX-WIDTH 18
+  ORDER 270
+
+ADD FIELD "xxdoarule__dec01" OF "xxdoarule_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 29
+  MAX-WIDTH 44
+  ORDER 280
+
+ADD FIELD "xxdoarule__dec02" OF "xxdoarule_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 30
+  MAX-WIDTH 44
+  ORDER 290
+
+ADD FIELD "xxdoarule__dec03" OF "xxdoarule_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 31
+  MAX-WIDTH 44
+  ORDER 300
+
+ADD FIELD "xxdoarule__dec04" OF "xxdoarule_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 32
+  MAX-WIDTH 44
+  ORDER 310
+
+ADD FIELD "xxdoarule__dec05" OF "xxdoarule_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 33
+  MAX-WIDTH 44
+  ORDER 320
+
+ADD FIELD "xxdoarule__log01" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 34
+  MAX-WIDTH 12
+  ORDER 330
+
+ADD FIELD "xxdoarule__log02" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 35
+  MAX-WIDTH 12
+  ORDER 340
+
+ADD FIELD "xxdoarule__log03" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 36
+  MAX-WIDTH 12
+  ORDER 350
+
+ADD FIELD "xxdoarule__log04" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 37
+  MAX-WIDTH 12
+  ORDER 360
+
+ADD FIELD "xxdoarule__log05" OF "xxdoarule_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 38
+  MAX-WIDTH 12
+  ORDER 370
+
+ADD FIELD "xxdoarule__date01" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 39
+  MAX-WIDTH 16
+  ORDER 380
+
+ADD FIELD "xxdoarule__date02" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 40
+  MAX-WIDTH 16
+  ORDER 390
+
+ADD FIELD "xxdoarule__date03" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 41
+  MAX-WIDTH 16
+  ORDER 400
+
+ADD FIELD "xxdoarule__date04" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 42
+  MAX-WIDTH 16
+  ORDER 410
+
+ADD FIELD "xxdoarule__date05" OF "xxdoarule_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 43
+  MAX-WIDTH 16
+  ORDER 420
+
+ADD INDEX "xxdoarule_domcode" ON "xxdoarule_mstr" 
+  AREA "DATA_IDX"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "xxdoarule_domain" ASCENDING 
+  INDEX-FIELD "xxdoarule_code" ASCENDING 
+
+ADD INDEX "xxdoarule_domtypebussite" ON "xxdoarule_mstr" 
+  AREA "DATA_IDX"
+  INDEX-FIELD "xxdoarule_domain" ASCENDING 
+  INDEX-FIELD "xxdoarule_type" ASCENDING 
+  INDEX-FIELD "xxdoarule_businessline" ASCENDING 
+  INDEX-FIELD "xxdoarule_site" ASCENDING 
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000006643

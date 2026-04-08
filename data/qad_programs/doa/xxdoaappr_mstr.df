@@ -1,0 +1,295 @@
+ADD TABLE "xxdoaappr_mstr"
+  AREA "DATA"
+  LABEL "DOA Approver Master"
+  DESCRIPTION "DOA Approver Master"
+  DUMP-NAME "xxdoaappr_mstr"
+
+ADD FIELD "xxdoaappr_domain" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(8)"
+  INITIAL ""
+  LABEL "Domain"
+  POSITION 2
+  MAX-WIDTH 16
+  ORDER 10
+
+ADD FIELD "xxdoaappr_type" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Rule Type"
+  POSITION 3
+  MAX-WIDTH 80
+  ORDER 20
+
+ADD FIELD "xxdoaappr_businessline" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(40)"
+  INITIAL ""
+  LABEL "Business Line"
+  POSITION 4
+  MAX-WIDTH 80
+  ORDER 30
+
+ADD FIELD "xxdoaappr_site" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "Site"
+  POSITION 5
+  MAX-WIDTH 60
+  ORDER 40
+
+ADD FIELD "xxdoaappr_approvers" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(50)"
+  INITIAL ""
+  LABEL "Approvers"
+  POSITION 6
+  MAX-WIDTH 100
+  EXTENT 15
+  ORDER 50
+
+ADD FIELD "xxdoaappr_LastModifiedDate" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  LABEL "Last Modified Date"
+  POSITION 7
+  MAX-WIDTH 16
+  ORDER 60
+
+ADD FIELD "xxdoaappr_LastModifiedTime" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Last Modified Time"
+  POSITION 8
+  MAX-WIDTH 8
+  ORDER 70
+
+ADD FIELD "xxdoaappr_LastModifiedUser" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  LABEL "Last Modified User"
+  POSITION 9
+  MAX-WIDTH 48
+  ORDER 80
+
+ADD FIELD "xxdoaappr__chr01" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 10
+  MAX-WIDTH 48
+  ORDER 90
+
+ADD FIELD "xxdoaappr__chr02" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 11
+  MAX-WIDTH 48
+  ORDER 100
+
+ADD FIELD "xxdoaappr__chr03" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 12
+  MAX-WIDTH 48
+  ORDER 110
+
+ADD FIELD "xxdoaappr__chr04" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 13
+  MAX-WIDTH 48
+  ORDER 120
+
+ADD FIELD "xxdoaappr__chr05" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 14
+  MAX-WIDTH 48
+  ORDER 130
+
+ADD FIELD "xxdoaappr__chr06" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 15
+  MAX-WIDTH 48
+  ORDER 140
+
+ADD FIELD "xxdoaappr__chr07" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 16
+  MAX-WIDTH 48
+  ORDER 150
+
+ADD FIELD "xxdoaappr__chr08" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 17
+  MAX-WIDTH 48
+  ORDER 160
+
+ADD FIELD "xxdoaappr__chr09" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 18
+  MAX-WIDTH 48
+  ORDER 170
+
+ADD FIELD "xxdoaappr__chr10" OF "xxdoaappr_mstr" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  POSITION 19
+  MAX-WIDTH 48
+  ORDER 180
+
+ADD FIELD "xxdoaappr__int01" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 20
+  MAX-WIDTH 18
+  ORDER 190
+
+ADD FIELD "xxdoaappr__int02" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 21
+  MAX-WIDTH 18
+  ORDER 200
+
+ADD FIELD "xxdoaappr__int03" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 22
+  MAX-WIDTH 18
+  ORDER 210
+
+ADD FIELD "xxdoaappr__int04" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 23
+  MAX-WIDTH 18
+  ORDER 220
+
+ADD FIELD "xxdoaappr__int05" OF "xxdoaappr_mstr" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 24
+  MAX-WIDTH 18
+  ORDER 230
+
+ADD FIELD "xxdoaappr__dec01" OF "xxdoaappr_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 25
+  MAX-WIDTH 44
+  ORDER 240
+
+ADD FIELD "xxdoaappr__dec02" OF "xxdoaappr_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 26
+  MAX-WIDTH 44
+  ORDER 250
+
+ADD FIELD "xxdoaappr__dec03" OF "xxdoaappr_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 27
+  MAX-WIDTH 44
+  ORDER 260
+
+ADD FIELD "xxdoaappr__dec04" OF "xxdoaappr_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 28
+  MAX-WIDTH 44
+  ORDER 270
+
+ADD FIELD "xxdoaappr__dec05" OF "xxdoaappr_mstr" AS decimal 
+  FORMAT "->>>,>>>,>>9.999999999"
+  INITIAL "0"
+  POSITION 29
+  MAX-WIDTH 44
+  ORDER 280
+
+ADD FIELD "xxdoaappr__log01" OF "xxdoaappr_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 30
+  MAX-WIDTH 12
+  ORDER 290
+
+ADD FIELD "xxdoaappr__log02" OF "xxdoaappr_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 31
+  MAX-WIDTH 12
+  ORDER 300
+
+ADD FIELD "xxdoaappr__log03" OF "xxdoaappr_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 32
+  MAX-WIDTH 12
+  ORDER 310
+
+ADD FIELD "xxdoaappr__log04" OF "xxdoaappr_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 33
+  MAX-WIDTH 12
+  ORDER 320
+
+ADD FIELD "xxdoaappr__log05" OF "xxdoaappr_mstr" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 34
+  MAX-WIDTH 12
+  ORDER 330
+
+ADD FIELD "xxdoaappr__date01" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 35
+  MAX-WIDTH 16
+  ORDER 340
+
+ADD FIELD "xxdoaappr__date02" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 36
+  MAX-WIDTH 16
+  ORDER 350
+
+ADD FIELD "xxdoaappr__date03" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 37
+  MAX-WIDTH 16
+  ORDER 360
+
+ADD FIELD "xxdoaappr__date04" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 38
+  MAX-WIDTH 16
+  ORDER 370
+
+ADD FIELD "xxdoaappr__date05" OF "xxdoaappr_mstr" AS date 
+  FORMAT "99/99/9999"
+  INITIAL ?
+  POSITION 39
+  MAX-WIDTH 16
+  ORDER 380
+
+ADD INDEX "xxdoaappr_domtypebussite" ON "xxdoaappr_mstr" 
+  AREA "DATA_IDX"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "xxdoaappr_domain" ASCENDING 
+  INDEX-FIELD "xxdoaappr_type" ASCENDING 
+  INDEX-FIELD "xxdoaappr_businessline" ASCENDING 
+  INDEX-FIELD "xxdoaappr_site" ASCENDING 
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000005863

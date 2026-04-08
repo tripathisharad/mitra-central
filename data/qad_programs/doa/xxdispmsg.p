@@ -1,0 +1,7 @@
+{us/bbi/mfdeclre.i}
+
+DEFINE INPUT PARAMETER ipc_msgNbr AS INTEGER	NO-UNDO.
+DEFINE INPUT PARAMETER ipc_errLvl AS INTEGER	NO-UNDO.
+DEFINE INPUT PARAMETER ipc_msgArg AS CHARACTER 	NO-UNDO.
+
+{us/bbi/pxmsg.i &MSGNUM=ipc_msgNbr &ERRORLEVEL=ipc_errLvl &MSGARG1=ipc_msgArg}
