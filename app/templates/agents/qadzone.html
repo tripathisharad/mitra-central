@@ -3,9 +3,14 @@
 {% block body %}
 <div class="h-full flex">
   {% include "partials/sidebar.html" %}
-  <div class="flex-1 flex flex-col" x-data="wsChat('{{ agent.route_prefix }}/ws', 'qadzone')" x-init="extraPayload = {mode: 'query'}">
+
+  <div class="flex-1 flex flex-col"
+       x-data="qadZone('{{ agent.route_prefix }}/ws')"
+       x-init="init()">
 
     <div class="h-full flex flex-col">
+
+      <!-- ── Header ── -->
       <header class="h-16 shrink-0 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center">
@@ -16,21 +21,28 @@
             <div class="text-xs text-slate-500">{{ agent.description }}</div>
           </div>
         </div>
-        <!-- Mode tabs in header -->
+
+        <!-- Mode tabs -->
         <div class="flex gap-1.5">
-          <template x-for="m in [{key:'query',label:'Query',icon:'search'},{key:'documentation',label:'Docs',icon:'file-text'},{key:'modernisation',label:'Migrate',icon:'rocket'}]" :key="m.key">
+          <template x-for="m in modes" :key="m.key">
             <button type="button"
-                    @click="extraPayload.mode = m.key; $nextTick(() => lucide.createIcons())"
-                    :class="extraPayload.mode === m.key ? 'bg-brand-50 border-brand-400 text-brand-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
+                    @click="switchMode(m.key)"
+                    :class="mode === m.key
+                      ? 'bg-brand-50 border-brand-400 text-brand-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition">
+              <i :data-lucide="m.icon" class="w-3.5 h-3.5"></i>
               <span x-text="m.label"></span>
             </button>
           </template>
         </div>
       </header>
 
+      <!-- ── Main content area ── -->
       <main class="flex-1 overflow-y-auto px-6 py-6" x-ref="msgs">
-        <template x-if="messages.length === 0">
+
+        <!-- Empty state -->
+        <template x-if="messages.length === 0 && mode !== 'modernisation'">
           <div class="max-w-3xl mx-auto">
             <div class="text-center py-10">
               <div class="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
@@ -39,16 +51,28 @@
               <h2 class="text-2xl font-bold text-slate-900">QAD-Zone</h2>
               <p class="text-slate-500 mt-1">Custom code knowledge base, documentation & modernisation.</p>
               <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
-                <div class="bg-white border border-slate-200 rounded-xl p-4 text-left">
-                  <div class="text-sm font-semibold text-slate-900 mb-1">Query</div>
+                <div @click="switchMode('query')"
+                     class="bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-xl p-4 text-left cursor-pointer transition">
+                  <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="search" class="w-4 h-4 text-brand-600"></i>
+                    <div class="text-sm font-semibold text-slate-900">Query</div>
+                  </div>
                   <div class="text-xs text-slate-500">Ask questions about custom QAD programs</div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-4 text-left">
-                  <div class="text-sm font-semibold text-slate-900 mb-1">Documentation</div>
+                <div @click="switchMode('documentation')"
+                     class="bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-xl p-4 text-left cursor-pointer transition">
+                  <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+                    <div class="text-sm font-semibold text-slate-900">Documentation</div>
+                  </div>
                   <div class="text-xs text-slate-500">Generate Word docs from custom code</div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-4 text-left">
-                  <div class="text-sm font-semibold text-slate-900 mb-1">Modernisation</div>
+                <div @click="switchMode('modernisation')"
+                     class="bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-xl p-4 text-left cursor-pointer transition">
+                  <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="rocket" class="w-4 h-4 text-brand-600"></i>
+                    <div class="text-sm font-semibold text-slate-900">Modernisation</div>
+                  </div>
                   <div class="text-xs text-slate-500">Migration analysis between QAD versions</div>
                 </div>
               </div>
@@ -56,52 +80,419 @@
           </div>
         </template>
 
-        <div class="max-w-4xl mx-auto space-y-6">
-          <template x-for="(m, i) in messages" :key="i">
-            <div>
-              <template x-if="m.role === 'user'">
-                <div class="flex justify-end">
-                  <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-5 py-3 max-w-[85%] whitespace-pre-wrap" x-text="m.text"></div>
+        <!-- ── Modernisation Panel (replaces chat entirely) ── -->
+        <template x-if="mode === 'modernisation'">
+          <div class="max-w-2xl mx-auto">
+
+            <!-- Version selector card -->
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 mb-6">
+              <div class="flex items-center gap-3 mb-6">
+                <div class="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center">
+                  <i data-lucide="rocket" class="w-5 h-5 text-brand-700"></i>
                 </div>
-              </template>
-              <template x-if="m.role === 'assistant'">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 prose-container" x-html="m.html"></div>
-              </template>
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-900">Migration Analysis</h2>
+                  <p class="text-sm text-slate-500">Select your QAD versions to generate a comprehensive migration plan</p>
+                </div>
+              </div>
+
+              <div class="space-y-5">
+                <!-- Current version -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-2">
+                    Current QAD Version
+                  </label>
+                  <select x-model="modernForm.currentVersion"
+                          class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                    <option value="">Select current version...</option>
+                    <optgroup label="QAD Enterprise Edition">
+                      <option value="QAD EE 2.0">QAD EE 2.0</option>
+                      <option value="QAD EE 2018">QAD EE 2018</option>
+                      <option value="QAD EE 2019">QAD EE 2019</option>
+                      <option value="QAD EE 2020">QAD EE 2020</option>
+                      <option value="QAD EE 2021">QAD EE 2021</option>
+                      <option value="QAD EE 2022">QAD EE 2022</option>
+                      <option value="QAD EE 2023">QAD EE 2023</option>
+                    </optgroup>
+                    <optgroup label="QAD Community Edition">
+                      <option value="QAD CE 2018">QAD CE 2018</option>
+                      <option value="QAD CE 2019">QAD CE 2019</option>
+                      <option value="QAD CE 2020">QAD CE 2020</option>
+                      <option value="QAD CE 2021">QAD CE 2021</option>
+                      <option value="QAD CE 2022">QAD CE 2022</option>
+                    </optgroup>
+                    <optgroup label="QAD Adaptive ERP">
+                      <option value="QAD Adaptive ERP 2022">QAD Adaptive ERP 2022</option>
+                      <option value="QAD Adaptive ERP 2023">QAD Adaptive ERP 2023</option>
+                      <option value="QAD Adaptive ERP 2024">QAD Adaptive ERP 2024</option>
+                    </optgroup>
+                  </select>
+                  <!-- Custom version override -->
+                  <input x-model="modernForm.currentCustom" type="text"
+                         placeholder="Or type a custom version (e.g. QAD EE 2.1 SP3)"
+                         class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+
+                <!-- Arrow indicator -->
+                <div class="flex items-center justify-center">
+                  <div class="flex items-center gap-2 text-slate-400">
+                    <div class="h-px w-16 bg-slate-200"></div>
+                    <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                    <div class="h-px w-16 bg-slate-200"></div>
+                  </div>
+                </div>
+
+                <!-- Target version -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-2">
+                    Target QAD Version
+                  </label>
+                  <select x-model="modernForm.targetVersion"
+                          class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                    <option value="">Select target version...</option>
+                    <optgroup label="QAD Enterprise Edition">
+                      <option value="QAD EE 2019">QAD EE 2019</option>
+                      <option value="QAD EE 2020">QAD EE 2020</option>
+                      <option value="QAD EE 2021">QAD EE 2021</option>
+                      <option value="QAD EE 2022">QAD EE 2022</option>
+                      <option value="QAD EE 2023">QAD EE 2023</option>
+                    </optgroup>
+                    <optgroup label="QAD Adaptive ERP">
+                      <option value="QAD Adaptive ERP 2022">QAD Adaptive ERP 2022</option>
+                      <option value="QAD Adaptive ERP 2023">QAD Adaptive ERP 2023</option>
+                      <option value="QAD Adaptive ERP 2024">QAD Adaptive ERP 2024</option>
+                    </optgroup>
+                  </select>
+                  <input x-model="modernForm.targetCustom" type="text"
+                         placeholder="Or type a custom version"
+                         class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+
+              <!-- Generate button -->
+              <button @click="sendModernisation()"
+                      :disabled="loading || (!modernForm.currentVersion && !modernForm.currentCustom) || (!modernForm.targetVersion && !modernForm.targetCustom)"
+                      class="mt-6 w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <template x-if="!loading">
+                  <span class="flex items-center gap-2">
+                    <i data-lucide="rocket" class="w-4 h-4"></i>
+                    Generate Migration Plan
+                  </span>
+                </template>
+                <template x-if="loading">
+                  <span class="flex items-center gap-2">
+                    <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Analysing...
+                  </span>
+                </template>
+              </button>
             </div>
-          </template>
-          <div x-show="streaming" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-            <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-2">
+
+            <!-- Modernisation result area -->
+            <template x-if="modernResult">
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+                <!-- Status while streaming -->
+                <div x-show="streaming" class="mb-4">
+                  <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-3">
+                    <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                    <span x-text="statusText"></span>
+                  </div>
+                  <div class="prose-container" x-html="currentHtml"></div>
+                  <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
+                </div>
+                <!-- Final result -->
+                <div x-show="!streaming" class="prose-container" x-html="modernResult"></div>
+              </div>
+            </template>
+
+            <!-- Streaming in progress (before result is finalized) -->
+            <template x-if="!modernResult && loading">
+              <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+                <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-3">
+                  <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                  <span x-text="statusText"></span>
+                </div>
+                <div class="prose-container" x-html="currentHtml"></div>
+                <span x-show="streaming" class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
+              </div>
+            </template>
+
+          </div>
+        </template>
+
+        <!-- ── Chat messages (Query + Documentation modes) ── -->
+        <template x-if="mode !== 'modernisation'">
+          <div class="max-w-4xl mx-auto space-y-6">
+            <template x-for="(m, i) in messages" :key="i">
+              <div>
+                <template x-if="m.role === 'user'">
+                  <div class="flex justify-end">
+                    <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-5 py-3 max-w-[85%] whitespace-pre-wrap" x-text="m.text"></div>
+                  </div>
+                </template>
+                <template x-if="m.role === 'assistant'">
+                  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 prose-container" x-html="m.html"></div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Streaming bubble -->
+            <div x-show="streaming" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                <span x-text="statusText"></span>
+              </div>
+              <div class="prose-container" x-html="currentHtml"></div>
+              <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
+            </div>
+
+            <div x-show="loading && !streaming" class="flex items-center gap-2 text-slate-500 text-sm">
               <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-              <span x-text="statusText"></span>
+              <span>Thinking...</span>
             </div>
-            <div class="prose-container" x-html="currentHtml"></div>
-            <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
           </div>
-          <div x-show="loading && !streaming" class="flex items-center gap-2 text-slate-500 text-sm">
-            <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-            <span>Thinking...</span>
-          </div>
-        </div>
+        </template>
+
       </main>
 
-      <footer class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
+      <!-- ── Footer (chat input — hidden in modernisation mode) ── -->
+      <footer x-show="mode !== 'modernisation'"
+              class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
         <div class="max-w-4xl mx-auto">
-          <form @submit.prevent="send()" class="flex gap-2">
+          <div class="flex gap-2">
             <input x-model="input" type="text"
-                   :placeholder="'Ask QAD-Zone (' + (extraPayload.mode || 'query') + ')...'"
+                   @keydown.enter.prevent="sendChat()"
+                   :placeholder="mode === 'documentation'
+                     ? 'e.g. Create documentation for the DOA module...'
+                     : 'Ask about custom QAD programs...'"
                    :disabled="loading"
                    class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
-            <button type="submit" :disabled="!input.trim() || loading"
+            <button @click="sendChat()" :disabled="!input.trim() || loading"
                     class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-5 rounded-xl font-medium flex items-center gap-2">
               <i data-lucide="send" class="w-4 h-4"></i>
               <span>Send</span>
             </button>
-          </form>
+          </div>
+          <p class="text-xs text-slate-400 mt-2 pl-1">
+            <template x-if="mode === 'documentation'">
+              <span>Tip: Specify the module name, e.g. <em>"Document the DOA approval module"</em></span>
+            </template>
+            <template x-if="mode === 'query'">
+              <span>Tip: Ask specific questions, e.g. <em>"What does xxdoaproc.p do?"</em></span>
+            </template>
+          </p>
         </div>
       </footer>
-    </div>
 
+    </div>
   </div>
 </div>
+
 {% include "partials/apex_widget.html" %}
+
+<script>
+function qadZone(wsPath) {
+  return {
+    // ── State ──
+    mode: 'query',
+    modes: [
+      { key: 'query',         label: 'Query',         icon: 'search'    },
+      { key: 'documentation', label: 'Docs',          icon: 'file-text' },
+      { key: 'modernisation', label: 'Migrate',       icon: 'rocket'    },
+    ],
+
+    // Chat (query + docs)
+    input: '',
+    loading: false,
+    streaming: false,
+    statusText: '',
+    messages: [],
+    currentText: '',
+    currentHtml: '',
+    currentDoc: null,
+    currentFollowups: null,
+    ws: null,
+
+    // Modernisation form
+    modernForm: {
+      currentVersion: '',
+      currentCustom: '',
+      targetVersion: '',
+      targetCustom: '',
+    },
+    modernResult: null,   // final HTML for the result area
+
+    init() {
+      // Follow-up chip clicks
+      this.$el.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-followup]');
+        if (chip && !this.loading && this.mode !== 'modernisation') {
+          this.input = chip.dataset.followup;
+          this.sendChat();
+        }
+      });
+      // Re-render lucide icons after init
+      this.$nextTick(() => window.lucide && lucide.createIcons());
+    },
+
+    switchMode(key) {
+      this.mode = key;
+      // Reset streaming state when switching
+      this._resetStream();
+      this.$nextTick(() => window.lucide && lucide.createIcons());
+    },
+
+    // ── Chat send (query + documentation) ────────────────────────────────
+    sendChat() {
+      const q = (this.input || '').trim();
+      if (!q || this.loading) return;
+      this.input = '';
+      this.messages.push({ role: 'user', text: q });
+      this._resetStream();
+      this.loading = true;
+      this.$nextTick(() => this.scrollBottom());
+
+      const ws = new WebSocket(buildWsUrl(wsPath));
+      this.ws = ws;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ mode: this.mode, question: q }));
+      };
+      ws.onmessage = (evt) => {
+        let frame;
+        try { frame = JSON.parse(evt.data); } catch (_) { return; }
+        this._handleFrame(frame, 'chat');
+      };
+      ws.onerror = () => {
+        this._finalizeChat('<div class="text-red-600 text-sm">Connection error. Please try again.</div>');
+      };
+      ws.onclose = () => {
+        if (this.loading) this._finalizeChat(this._buildChatHtml());
+      };
+    },
+
+    // ── Modernisation send ────────────────────────────────────────────────
+    sendModernisation() {
+      const current = (this.modernForm.currentCustom || this.modernForm.currentVersion || '').trim();
+      const target  = (this.modernForm.targetCustom  || this.modernForm.targetVersion  || '').trim();
+      if (!current || !target || this.loading) return;
+
+      this._resetStream();
+      this.modernResult = null;
+      this.loading = true;
+
+      const ws = new WebSocket(buildWsUrl(wsPath));
+      this.ws = ws;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          mode: 'modernisation',
+          current_version: current,
+          target_version: target,
+        }));
+      };
+      ws.onmessage = (evt) => {
+        let frame;
+        try { frame = JSON.parse(evt.data); } catch (_) { return; }
+        this._handleFrame(frame, 'modernisation');
+      };
+      ws.onerror = () => {
+        this.modernResult = '<div class="text-red-600 text-sm">Connection error. Please try again.</div>';
+        this.loading = false;
+        this.streaming = false;
+      };
+      ws.onclose = () => {
+        if (this.loading) this._finalizeModernisation(this._buildChatHtml());
+      };
+    },
+
+    // ── Frame handler ─────────────────────────────────────────────────────
+    _handleFrame(frame, target) {
+      const { type, data } = frame;
+      switch (type) {
+        case 'token':
+          if (!this.streaming) this.streaming = true;
+          this.currentText += data;
+          this.currentHtml = renderMarkdown(this.currentText);
+          this.$nextTick(() => this.scrollBottom());
+          break;
+
+        case 'status':
+          this.statusText = data;
+          break;
+
+        case 'doc':
+          this.currentDoc = data;
+          break;
+
+        case 'followup':
+          this.currentFollowups = data;
+          break;
+
+        case 'error':
+          if (target === 'modernisation') {
+            this._finalizeModernisation(`<div class="text-red-600 text-sm">${escapeHtml(data)}</div>`);
+          } else {
+            this._finalizeChat(`<div class="text-red-600 text-sm">${escapeHtml(data)}</div>`);
+          }
+          break;
+
+        case 'done':
+          if (target === 'modernisation') {
+            this._finalizeModernisation(this._buildChatHtml());
+          } else {
+            this._finalizeChat(this._buildChatHtml());
+          }
+          break;
+      }
+    },
+
+    _buildChatHtml() {
+      let html = '';
+      if (this.currentText) {
+        html += `<div class="prose-content">${renderMarkdown(this.currentText)}</div>`;
+      }
+      html += renderDoc(this.currentDoc);
+      html += renderFollowups(this.currentFollowups);
+      return html || '<div class="text-slate-500 text-sm italic">No response received.</div>';
+    },
+
+    _finalizeChat(html) {
+      this.messages.push({ role: 'assistant', html });
+      this._done();
+    },
+
+    _finalizeModernisation(html) {
+      this.modernResult = html;
+      this._done();
+    },
+
+    _done() {
+      this.loading = false;
+      this.streaming = false;
+      this.statusText = '';
+      if (this.ws) { try { this.ws.close(); } catch (_) {} this.ws = null; }
+      this.$nextTick(() => {
+        this.scrollBottom();
+        if (window.lucide) lucide.createIcons();
+      });
+    },
+
+    _resetStream() {
+      this.streaming = false;
+      this.statusText = '';
+      this.currentText = '';
+      this.currentHtml = '';
+      this.currentDoc = null;
+      this.currentFollowups = null;
+    },
+
+    scrollBottom() {
+      const el = this.$refs.msgs;
+      if (el) el.scrollTop = el.scrollHeight;
+    },
+  };
+}
+window.qadZone = qadZone;
+</script>
 {% endblock %}

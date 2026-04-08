@@ -1,22 +1,24 @@
 """QAD modernisation analysis module.
 
 Flow:
-1. List all custom programs the user has
-2. User specifies current version and target version
-3. Search the web for target version features (DuckDuckGo — free)
-4. LLM analyses: carry forward / drop / adapt for each customisation
-5. Generate a corporate Word doc with the migration plan
+1. Receive current_version + target_version directly (no chat parsing)
+2. Load inventory of all custom programs across all modules
+3. Load full code of each module for deep analysis
+4. Search the web for target version features and upgrade guides
+5. LLM analyses: carry forward / drop / adapt for each customisation
+6. Generate a corporate Word doc with the full migration plan
 """
 from __future__ import annotations
 
 import logging
 
 from app.core.llm import openai_chat
-from app.agents.qad_zone.programs import load_all_code_summary
+from app.agents.qad_zone.programs import load_all_code_summary, list_modules, load_module_code
 from app.agents.qad_zone.doc_generator import generate_document
 
 logger = logging.getLogger(__name__)
 
+# Try DuckDuckGo (free, no key required)
 try:
     from duckduckgo_search import DDGS
     _ddg_available = True
@@ -25,75 +27,124 @@ except ImportError:
     logger.warning("duckduckgo-search not installed; web search disabled for modernisation")
 
 
-def _web_search(query: str, max_results: int = 5) -> str:
-    """Free web search via DuckDuckGo."""
+def _web_search(query: str, max_results: int = 6) -> str:
+    """Search the web via DuckDuckGo. Returns formatted results or fallback message."""
     if not _ddg_available:
-        return "Web search not available (duckduckgo-search package not installed)."
+        return "Web search not available (install duckduckgo-search)."
     try:
         results = []
         with DDGS() as ddgs:
             for r in ddgs.text(query, max_results=max_results):
-                results.append(f"- {r['title']}: {r['body']}")
-        return "\n".join(results) if results else "No web results found."
+                title = r.get("title", "")
+                body = r.get("body", "")
+                href = r.get("href", "")
+                results.append(f"• {title}\n  {body}\n  Source: {href}")
+        return "\n\n".join(results) if results else "No results found."
     except Exception as exc:
         logger.warning("DuckDuckGo search failed: %s", exc)
         return f"Web search failed: {exc}"
+
+
+def _load_all_module_code(max_chars_per_module: int = 40_000) -> str:
+    """Load code from all modules, each capped to keep total context reasonable."""
+    modules = list_modules()
+    if not modules:
+        return "No custom program modules found."
+
+    parts = []
+    for mod in modules:
+        code = load_module_code(mod, max_chars=max_chars_per_module)
+        parts.append(f"\n{'#'*70}\n# MODULE: {mod.upper()}\n{'#'*70}\n{code}")
+    return "\n".join(parts)
 
 
 async def analyse_modernisation(
     current_version: str,
     target_version: str,
 ) -> dict:
-    """Run full modernisation analysis. Returns {analysis_text, doc_url}."""
+    """Run full modernisation analysis. Returns dict with summary, sections, doc_url."""
 
-    # Step 1: Inventory of custom programs
+    # ── Step 1: Inventory + code ─────────────────────────────────────────────
     programs_summary = load_all_code_summary()
+    all_code = _load_all_module_code()
 
-    # Step 2: Web search for target version features
-    search_query = f"QAD {target_version} new features vs {current_version} customisation migration"
-    web_results = _web_search(search_query, max_results=8)
+    # ── Step 2: Web research ─────────────────────────────────────────────────
+    searches = [
+        f"QAD {target_version} new features changelog what's new",
+        f"QAD {current_version} to {target_version} upgrade migration guide",
+        f"QAD {target_version} customisation standard functionality replaced",
+        f"QAD ERP {target_version} Progress 4GL OpenEdge compatibility",
+    ]
 
-    upgrade_query = f"QAD {target_version} upgrade guide from {current_version} best practices"
-    upgrade_results = _web_search(upgrade_query, max_results=5)
+    web_parts = []
+    for q in searches:
+        logger.info("Searching: %s", q)
+        result = _web_search(q, max_results=5)
+        web_parts.append(f"SEARCH: {q}\n{result}")
 
-    # Step 3: LLM analysis
-    prompt = f"""You are a QAD ERP modernisation expert. Analyse the custom programs below and create a detailed migration plan.
+    web_context = "\n\n".join(web_parts)
+
+    # ── Step 3: LLM deep analysis ─────────────────────────────────────────────
+    prompt = f"""You are a senior QAD ERP modernisation consultant.
+Analyse the custom QAD programs below and produce a comprehensive, actionable migration plan.
 
 CURRENT VERSION: {current_version}
 TARGET VERSION: {target_version}
 
-CUSTOM PROGRAMS INVENTORY:
+━━━ CUSTOM PROGRAMS INVENTORY ━━━
 {programs_summary}
 
-WEB RESEARCH — TARGET VERSION FEATURES:
-{web_results}
+━━━ FULL CUSTOM CODE ━━━
+{all_code}
 
-WEB RESEARCH — UPGRADE GUIDE:
-{upgrade_results}
+━━━ WEB RESEARCH — TARGET VERSION & MIGRATION ━━━
+{web_context}
 
-Create a comprehensive migration analysis with these sections:
+━━━ INSTRUCTIONS ━━━
+Produce a detailed migration plan with exactly these sections:
 
-1. EXECUTIVE SUMMARY — brief overview of the migration scope
-2. CUSTOMISATIONS TO CARRY FORWARD — features not available natively in the target version; explain what needs to be migrated and how
-3. CUSTOMISATIONS TO DROP — features that are now native in the target version; no need to carry these
-4. CUSTOMISATIONS REQUIRING ADAPTATION — partially available in new version; explain what changes are needed
-5. IMPLEMENTATION STEPS — ordered list of steps for the migration
-6. RISK ASSESSMENT — potential risks and mitigations
-7. ESTIMATED EFFORT — rough categorisation (low/medium/high) per customisation area
+1. Executive Summary
+   - Scope of migration, number of customisations, high-level recommendation
 
-Format each section with a clear heading and detailed content.
-Return your analysis as a JSON object:
+2. Version Comparison: {current_version} vs {target_version}
+   - Key architectural changes, new standard features, deprecated capabilities
+
+3. Customisations to CARRY FORWARD
+   - For each: module name, what it does, why it must be kept, migration effort (Low/Med/High)
+
+4. Customisations to DROP (now standard in {target_version})
+   - For each: module name, what it does, which standard feature replaces it
+
+5. Customisations Requiring ADAPTATION
+   - For each: module name, what changes, technical approach, effort estimate
+
+6. Implementation Roadmap
+   - Ordered phases with clear milestones and dependencies
+
+7. Risk Assessment
+   - Top risks with likelihood, impact, and mitigation strategies
+
+8. Effort Summary
+   - Table-style breakdown: module | action | effort | priority
+
+Return ONLY a JSON object (no markdown fences), exactly:
 {{
+  "summary": "One clear paragraph executive summary",
   "sections": [
     {{"heading": "Section Title", "content": "Detailed content...", "level": 1}},
+    {{"heading": "Sub-section", "content": "...", "level": 2}},
     ...
-  ],
-  "summary": "One paragraph executive summary"
+  ]
 }}
+
+Be specific. Reference actual program file names from the code. Do not be vague.
 """
 
     raw = await openai_chat(
-        "You are a QAD ERP modernisation expert.", prompt, max_tokens=4096
+        "You are a senior QAD ERP modernisation consultant. Return only valid JSON.",
+        prompt,
+        max_tokens=4096,
+        temperature=0.1,
     )
 
     from app.core.llm import parse_json_response
@@ -102,11 +153,11 @@ Return your analysis as a JSON object:
         sections = parsed.get("sections", [])
         summary = parsed.get("summary", "Migration analysis complete.")
     except Exception:
-        # Fallback: treat entire response as one section
+        logger.warning("Failed to parse JSON from modernisation LLM, using raw text")
         sections = [{"heading": "Migration Analysis", "content": raw, "level": 1}]
-        summary = "Migration analysis generated."
+        summary = "Migration analysis generated. See document for full details."
 
-    # Step 4: Generate Word document
+    # ── Step 4: Generate Word document ───────────────────────────────────────
     doc_url = generate_document(
         title=f"QAD Migration Plan: {current_version} → {target_version}",
         sections=sections,
