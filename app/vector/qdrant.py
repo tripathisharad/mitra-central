@@ -104,4 +104,32 @@ async def search_chunks(
             "metadata": {k: v for k, v in payload.items() if k not in ("text", "content")},
             "score": r.score,
         })
+    # If no results returned and the queried collection is the configured Apex
+    # collection, attempt a fallback search against a commonly-used collection
+    # `qad_docs` which may have been created by the local embed script.
+    if not chunks and coll != "qad_docs":
+        logger.info("No results in %s; attempting fallback search in 'qad_docs'", coll)
+        try:
+            results2 = await loop.run_in_executor(
+                None,
+                partial(
+                    client.search,
+                    collection_name="qad_docs",
+                    query_vector=vector,
+                    query_filter=query_filter,
+                    limit=top_k,
+                    with_payload=True,
+                ),
+            )
+        except Exception:
+            results2 = []
+
+        logger.info("Fallback Qdrant returned %d results", len(results2))
+        for r in results2:
+            payload = r.payload or {}
+            chunks.append({
+                "text": payload.get("text", payload.get("content", "")),
+                "metadata": {k: v for k, v in payload.items() if k not in ("text", "content")},
+                "score": r.score,
+            })
     return chunks

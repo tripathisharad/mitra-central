@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str = ""
     qdrant_api_key: str = ""
-    qdrant_collection_apex: str = "apex-normal"
+    qdrant_collection_apex: str = "qad_docs"
 
 
 @lru_cache

@@ -51,15 +51,35 @@ async def handle_apex_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                 await send_error(ws, "Question is required")
                 continue
 
-            domains = data.get("domains") or []
-            # Store domains on first interaction
-            if domains:
-                ctx = get_context(session_id, AGENT_KEY) or {}
-                if not ctx.get("domains"):
-                    set_context(session_id, AGENT_KEY, {"domains": domains})
+            # Determine domains from message or existing context
+            raw_domains = data.get("domains")
+            ctx = get_context(session_id, AGENT_KEY) or {}
+            if raw_domains:
+                domains = raw_domains
             else:
-                ctx = get_context(session_id, AGENT_KEY) or {}
                 domains = ctx.get("domains", [])
+
+            # Normalize domain names (lowercase) and map common synonyms
+            mapping = {
+                "purchase": "purchasing",
+                "purchases": "purchasing",
+                "purchasing": "purchasing",
+                "sales": "sales",
+                "sale": "sales",
+                "manufacturing": "manufacturing",
+                "mfg": "manufacturing",
+            }
+            normalized: list[str] = []
+            for d in domains or []:
+                if not isinstance(d, str):
+                    continue
+                key = d.strip().lower()
+                normalized.append(mapping.get(key, key))
+
+            # Persist normalized domains so future requests use canonical values
+            if normalized:
+                set_context(session_id, AGENT_KEY, {"domains": normalized})
+            domains = normalized
 
             await send_status(ws, "Searching documentation...")
             logger.info("Searching Qdrant: collection=%s, modules=%s", settings.qdrant_collection_apex, domains)

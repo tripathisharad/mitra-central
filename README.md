@@ -87,6 +87,37 @@ python run.py
 
 Open http://localhost:8000 and log in with `admin` / `mfgpro`.
 
+## Apex: Local Docs Indexing (qad_docs)
+
+If you prefer to host the Apex documentation locally (instead of using n8n), this
+project includes a helper to embed PDFs stored under `data/apex-pdf` into a new
+Qdrant collection named `qad_docs`.
+
+Steps:
+
+1. Place your PDFs in `data/apex-pdf/`. Use filenames like `sales.pdf`, `purchase.pdf`, `manufacturing.pdf` — the filename (without extension) will be stored as the `module` metadata.
+2. Ensure your `.env` has `OPENAI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` set.
+3. Install dependencies: `pip install -r requirements.txt` (this adds `PyPDF2` for PDF parsing).
+4. Run the embedding script to create/replace the `qad_docs` collection and upload chunks:
+
+```bash
+python -m scripts.embed_qad_docs
+```
+
+5. (Optional) Create a payload index on the `module` field so the Apex agent can filter by module efficiently:
+
+```bash
+python -m scripts.create_qdrant_index
+```
+
+Notes:
+- Text is split into ~1000-character chunks with 200-character overlap to preserve context.
+- Each chunk payload contains `text`, `module`, and `filename` fields. The Apex agent filters using the `module` payload to restrict results (e.g., `sales`, `purchase`, `manufacturing`).
+- The embedding model used is `text-embedding-3-large` (configured in `app/core/llm.py`).
+
+Testing in the app:
+- Start the app (`python run.py`) and open the Apex widget. Select the appropriate module (Sales/Purchasing/Manufacturing) and ask a question. The agent will query the `qad_docs` collection and return answers based on the uploaded PDFs.
+
 ## Project Structure
 
 ```
