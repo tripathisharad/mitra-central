@@ -52,20 +52,32 @@ function renderSql(sql) {
 function renderFollowups(list) {
   if (!list || list.length === 0) return "";
   const chips = list.map(q =>
-    `<button class="chip" data-followup="${escapeHtml(q)}">
-       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-       ${escapeHtml(q)}
+    `<button class="apex-followup" data-followup="${escapeHtml(q)}">
+       <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+       <span>${escapeHtml(q)}</span>
      </button>`).join("");
-  return `<div class="mt-4 flex flex-wrap gap-2">${chips}</div>`;
+  return `<div class="mt-2 flex flex-col gap-1">${chips}</div>`;
 }
 
 function renderSources(sources) {
   if (!sources || sources.length === 0) return "";
-  const items = sources.map(s => {
-    const name = s.title || s.name || s.source || (typeof s === "string" ? s : JSON.stringify(s));
-    return `<li class="text-xs text-slate-500">${escapeHtml(name)}</li>`;
-  }).join("");
-  return `<div class="mt-3"><div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Sources</div><ul class="space-y-0.5">${items}</ul></div>`;
+  // Show only the top source (highest confidence — first in list)
+  const top = sources[0];
+  const name = top.title || top.name || top.source || (typeof top === "string" ? top : null);
+  let label;
+  if (name) {
+    label = escapeHtml(name);
+  } else {
+    // Apex format: {module, filename, score}
+    const mod = top.module ? `<span style="text-transform:capitalize">${escapeHtml(top.module)}</span>` : "";
+    const file = top.filename ? escapeHtml(top.filename) : "";
+    const score = top.score ? `<span style="opacity:0.6">${Math.round(top.score * 100)}% match</span>` : "";
+    label = [mod, file, score].filter(Boolean).join(" · ");
+  }
+  return `<div class="mt-2 pt-2 border-t border-slate-200" style="font-size:11px;color:#94a3b8">
+    <span style="text-transform:uppercase;letter-spacing:.05em;font-size:9px">Source</span>
+    <span style="margin-left:6px;color:#64748b">${label}</span>
+  </div>`;
 }
 
 function renderDoc(doc) {
@@ -340,6 +352,14 @@ function apexWidget() {
     ws: null,
 
     async init() {
+      // Handle follow-up chip clicks via event delegation
+      this.$el.addEventListener("click", (e) => {
+        const chip = e.target.closest("[data-followup]");
+        if (chip && !this.loading) {
+          this.input = chip.dataset.followup;
+          this.send();
+        }
+      });
       try {
         const res = await fetch("/agents/apex/context", { credentials: "same-origin" });
         if (res.ok) {

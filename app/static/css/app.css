@@ -76,3 +76,32 @@ body { -webkit-font-smoothing: antialiased; }
 /* Streaming cursor */
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .animate-blink { animation: blink 1s steps(1) infinite; }
+
+/* Apex follow-up question chips */
+.apex-followup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1.4;
+}
+.apex-followup:hover {
+  background: #eff6ff;
+  border-color: #bcd0ff;
+  color: #1e32b4;
+}
+.apex-followup svg { flex-shrink: 0; opacity: 0.6; }
+
+/* Tighter prose inside Apex chat bubbles */
+.prose.prose-sm p { margin: 0.25rem 0; }
+.prose.prose-sm ul, .prose.prose-sm ol { margin: 0.25rem 0; padding-left: 1.25rem; }
+.prose.prose-sm li { margin: 0.1rem 0; }

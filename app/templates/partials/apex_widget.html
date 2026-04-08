@@ -25,7 +25,7 @@
     <div x-show="needsDomain" class="p-5 space-y-3">
       <p class="text-sm text-slate-700">What area are you working in?</p>
       <div class="space-y-2">
-        <template x-for="d in ['sales','purchase','manufacturing']" :key="d">
+        <template x-for="d in ['sales','purchasing','manufacturing']" :key="d">
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
             <input type="checkbox" :value="d" x-model="selectedDomains" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
             <span class="text-sm capitalize" x-text="d"></span>
@@ -46,14 +46,14 @@
                          ? 'bg-brand-600 text-white'
                          : 'bg-slate-100 text-slate-800'"
                class="rounded-2xl px-4 py-2 max-w-[85%] text-sm">
-            <div x-html="m.html || m.text" class="whitespace-pre-wrap"></div>
+            <div x-html="m.html || m.text" class="prose prose-sm max-w-none"></div>
           </div>
         </div>
       </template>
       <!-- Streaming -->
       <div x-show="streaming" class="flex justify-start">
         <div class="bg-slate-100 text-slate-800 rounded-2xl px-4 py-2 max-w-[85%] text-sm">
-          <div x-html="currentHtml" class="whitespace-pre-wrap"></div>
+          <div x-html="currentHtml" class="prose prose-sm max-w-none"></div>
           <span class="inline-block w-1 h-3 bg-brand-500 animate-pulse align-middle"></span>
         </div>
       </div>
