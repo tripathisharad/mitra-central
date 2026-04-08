@@ -4,19 +4,20 @@ Full pipeline (all in Python, no n8n):
 1. Identify relevant tables (Groq — fast & free)
 2. Look up schemas for those tables
 3. Check business rules for pre-built SQL
-4. Generate SQL via OpenAI (or use pre-built)
-5. Execute via ODBC
-6. Stream explanation + send data via WebSocket
+4. Generate SQL via OpenAI (silent — JSON response, not prose)
+5. Parse JSON, extract SQL + explanation + followups
+6. Execute SQL via ODBC
+7. Stream only the explanation text to frontend, then send table + followups
 """
 from __future__ import annotations
 
 import json
 import logging
 
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 
 from app.core.config import settings
-from app.core.llm import groq_chat, openai_stream, parse_json_response
+from app.core.llm import groq_chat, openai_chat, parse_json_response
 from app.core.session import append_turn, get_user_settings, load_history
 from app.core.ws import send_done, send_error, send_frame, send_status, send_token
 from app.db.odbc import run_select
@@ -28,34 +29,77 @@ logger = logging.getLogger(__name__)
 
 AGENT_KEY = "mitra"
 
+# Output format kept as a separate string so .format() never sees its curly braces
+_OUTPUT_FORMAT = """{
+  "query": "SELECT ...",
+  "explanation": {
+    "basis": "What the user asked and the logic/criteria used to filter results.",
+    "benefit": "How this data helps the user make decisions."
+  },
+  "followup_questions": ["question 1", "question 2"]
+}"""
+
+_RULE_OUTPUT_FORMAT_TEMPLATE = """{
+  "query": "SQL_PLACEHOLDER",
+  "explanation": {
+    "basis": "What the user asked and the logic/criteria used.",
+    "benefit": "How this data helps the user."
+  },
+  "followup_questions": ["FOLLOWUP_PLACEHOLDER", "What other analysis would be helpful?"]
+}"""
+
 SQL_SYSTEM_PROMPT = """You are an expert QAD ERP SQL assistant. Generate a query based on the user's question using ONLY the provided table schemas.
 
 SCHEMAS:
 {schemas}
 
-RULES:
-1. Use proper SQL syntax compatible with Progress OpenEdge via ODBC. Prefer Progress-specific constructs where appropriate.
-2. Always prefix table names with the schema `PUB.` (e.g. PUB.pt_mstr).
-3. Always filter by domain: WHERE table.domain_field = '{domain}'
-4. Always include `TOP {limit}` (Progress uses `TOP` instead of `LIMIT`). Place it immediately after `SELECT` when appropriate.
-5. Use user-friendly column aliases (AS "Descriptive Name") for all columns.
-6. Only use tables and columns from the provided schemas. Never guess.
-7. For date comparisons use standard SQL date functions supported by Progress/OpenEdge.
+PROGRESS OPENEDGE SQL - MANDATORY RULES
+You are targeting a Progress OpenEdge database via ODBC (DataDirect driver).
+You MUST use ONLY the functions listed below. Any other date/time syntax will cause a runtime error.
+
+DATE AND TIME - use these EXACT functions, no alternatives:
+  CURDATE()            returns today's date as DATE
+  CURDATE() - 15       date 15 days ago  (integer = days for DATE arithmetic)
+  CURDATE() - 30       date 30 days ago
+  CURDATE() - 90       date 90 days ago
+  date_col - CURDATE() returns integer number of days difference
+  ADD_MONTHS(date, n)  add or subtract whole months, e.g. ADD_MONTHS(CURDATE(), -3)
+  YEAR(date)           extract year as integer
+  MONTH(date)          extract month as integer
+  DAY(date)            extract day as integer
+
+NEVER USE - these all cause errors on this database:
+  TODAY, CURRENT_DATE, CURRENT_TIMESTAMP, GETDATE(), SYSDATE, NOW(), NOW
+  DATEADD, DATE_SUB, DATEDIFF, TIMESTAMPADD, TIMESTAMPDIFF, INTERVAL
+  LIMIT, OFFSET, ROWNUM, FETCH FIRST
+  ISNULL, NVL, CONCAT()
+
+PAGINATION - Progress uses TOP not LIMIT:
+  SELECT TOP {limit} col1, col2 FROM ...
+  TOP goes immediately after SELECT, before column names.
+
+SCHEMA PREFIX - always prefix every table name with PUB.:
+  PUB.pt_mstr, PUB.pd_hist, PUB.oe_head
+
+DOMAIN FILTER - always add:
+  WHERE some_table.domain_field = '{domain}'
+
+STRING CONCAT - use || not CONCAT():
+  col1 || ' ' || col2
+
+NULL HANDLING - use COALESCE not ISNULL or NVL:
+  COALESCE(col, 0)
+
+ALIASES - always use double-quoted aliases:
+  pt_desc1 AS "Item Description"
 
 {business_hint}
 
 CONVERSATION CONTEXT (previous exchanges):
 {history_text}
 
-OUTPUT FORMAT — respond with ONLY this JSON (no markdown fences):
-{{
-  "query": "SELECT ...",
-  "explanation": {{
-    "basis": "What the user asked and the logic/criteria used to filter results.",
-    "benefit": "How this data helps the user make decisions."
-  }},
-  "followup_questions": ["question 1", "question 2"]
-}}
+OUTPUT FORMAT - respond with ONLY valid JSON, no markdown fences, no extra text:
+{output_format}
 """
 
 SQL_WITH_RULE_PROMPT = """You are an expert QAD ERP SQL assistant. A pre-built query is provided. Your job is ONLY to explain it and suggest follow-ups.
@@ -67,18 +111,8 @@ RULES:
 - Use the EXACT query above in your response. Do NOT modify it.
 - Explain what the query does and how it helps the user.
 
-NOTES:
-- The environment uses Progress OpenEdge via ODBC. When explaining, assume `PUB.` schema prefixes and Progress `TOP` pagination where applicable.
-
-OUTPUT FORMAT — respond with ONLY this JSON (no markdown fences):
-{{
-  "query": "{sql_escaped}",
-  "explanation": {{
-    "basis": "What the user asked and the logic/criteria used.",
-    "benefit": "How this data helps the user."
-  }},
-  "followup_questions": ["{followup}", "What other analysis would be helpful?"]
-}}
+OUTPUT FORMAT - respond with ONLY valid JSON, no markdown fences:
+{output_format}
 """
 
 
@@ -115,6 +149,11 @@ def _build_history_text(history: list[dict]) -> str:
     return "\n".join(lines) if lines else "No previous conversation."
 
 
+def _stream_chunks(text: str, chunk_size: int = 30):
+    """Split text into chunks for token streaming."""
+    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+
 async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
     """Main WebSocket handler for Mitra text-to-SQL agent."""
     try:
@@ -138,48 +177,53 @@ async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
 
             # Step 3: Check business rules
             rule = find_matching_rule(question, roles)
-
             history = load_history(session_id, AGENT_KEY)
             history_text = _build_history_text(history)
 
             sql_to_execute = None
-            followup = None
+            explanation_basis = ""
+            explanation_benefit = ""
+            followups = []
 
+            # ── Path A: pre-built rule SQL ────────────────────────────────
             if rule and rule.get("sql"):
-                # Pre-built SQL — format with domain and limit
                 sql_to_execute = rule["sql"].format(
                     domain=settings.qad_domain,
                     limit=row_limit,
                 )
-                followup = rule.get("followup", "")
+                rule_followup = rule.get("followup", "")
 
                 await send_status(ws, "Using optimised business rule query...")
 
-                # Stream explanation from LLM
+                rule_output = _RULE_OUTPUT_FORMAT_TEMPLATE.replace(
+                    "SQL_PLACEHOLDER", sql_to_execute.replace('"', '\\"')
+                ).replace("FOLLOWUP_PLACEHOLDER", rule_followup)
+
                 explain_prompt = SQL_WITH_RULE_PROMPT.format(
                     sql=sql_to_execute,
-                    sql_escaped=sql_to_execute.replace('"', '\\"'),
-                    followup=followup,
+                    output_format=rule_output,
                 )
-                full_response = []
-                try:
-                    async for token in openai_stream(
-                        "You are a QAD ERP expert. Explain the query.", explain_prompt
-                    ):
-                        full_response.append(token)
-                        await send_token(ws, token)
-                except Exception as exc:
-                    logger.exception("OpenAI stream failed")
-                    await send_error(ws, f"LLM error: {exc}")
-                    await send_done(ws)
-                    continue
 
+                try:
+                    raw_text = await openai_chat(
+                        "You are a QAD ERP expert. Return only valid JSON.", explain_prompt
+                    )
+                    parsed = parse_json_response(raw_text)
+                    exp = parsed.get("explanation", {})
+                    explanation_basis = exp.get("basis", "")
+                    explanation_benefit = exp.get("benefit", "")
+                    followups = parsed.get("followup_questions", [])
+                    if rule_followup and rule_followup not in followups:
+                        followups.insert(0, rule_followup)
+                except Exception as exc:
+                    logger.exception("LLM explain failed for rule query")
+                    explanation_basis = f"Pre-built query for: {question}"
+
+            # ── Path B: LLM generates SQL ────────────────────────────────
             else:
-                # LLM generates SQL
                 business_hint = ""
                 if rule and rule.get("logic"):
                     business_hint = f"BUSINESS LOGIC HINT: {rule['logic']}"
-                    followup = rule.get("followup")
 
                 await send_status(ws, "Generating SQL query...")
 
@@ -189,40 +233,52 @@ async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                     limit=row_limit,
                     business_hint=business_hint,
                     history_text=history_text,
+                    output_format=_OUTPUT_FORMAT,
                 )
 
-                full_response = []
                 try:
-                    async for token in openai_stream(system, question, history=[
-                        {"role": h.get("role", "user"), "content": h.get("q", "")}
-                        for h in history[-6:]
-                    ]):
-                        full_response.append(token)
-                        await send_token(ws, token)
+                    # Silent call — LLM returns JSON, not prose; never stream raw JSON
+                    raw_text = await openai_chat(
+                        system, question,
+                        max_tokens=1500,
+                        temperature=0.1,
+                    )
                 except Exception as exc:
-                    logger.exception("OpenAI stream failed")
+                    logger.exception("OpenAI call failed")
                     await send_error(ws, f"LLM error: {exc}")
                     await send_done(ws)
                     continue
 
-                # Parse the LLM response
-                raw_text = "".join(full_response)
                 try:
                     parsed = parse_json_response(raw_text)
                     sql_to_execute = parsed.get("query")
-                    if not followup:
-                        fups = parsed.get("followup_questions") or []
-                        followup = fups[0] if fups else None
+                    exp = parsed.get("explanation", {})
+                    explanation_basis = exp.get("basis", "")
+                    explanation_benefit = exp.get("benefit", "")
+                    followups = parsed.get("followup_questions", [])
+                    if rule and rule.get("followup"):
+                        followups.insert(0, rule["followup"])
                 except Exception:
-                    logger.warning("Could not parse LLM response as JSON, extracting SQL")
-                    # Try to extract SQL directly
+                    logger.warning("Could not parse LLM JSON response, extracting SQL")
                     for line in raw_text.split("\n"):
                         stripped = line.strip()
                         if stripped.upper().startswith(("SELECT", "WITH")):
                             sql_to_execute = stripped
                             break
 
-            # Step 5: Execute SQL
+            # ── Step 4: Stream explanation as clean prose ─────────────────
+            # Build a readable explanation card — never expose raw JSON
+            if explanation_basis or explanation_benefit:
+                explanation_md = ""
+                if explanation_basis:
+                    explanation_md += f"{explanation_basis}\n\n"
+                if explanation_benefit:
+                    explanation_md += f"{explanation_benefit}"
+                for chunk in _stream_chunks(explanation_md.strip()):
+                    await send_token(ws, chunk)
+
+            # ── Step 5: Execute SQL ───────────────────────────────────────
+            result = {"columns": [], "rows": [], "row_count": 0}
             if sql_to_execute:
                 await send_frame(ws, "sql", sql_to_execute)
                 await send_status(ws, "Executing query on QAD...")
@@ -236,27 +292,14 @@ async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                 except Exception as exc:
                     logger.exception("ODBC query failed")
                     await send_error(ws, f"SQL execution failed: {exc}")
-                    result = {"columns": [], "rows": [], "row_count": 0}
             else:
                 await send_error(ws, "Could not generate a valid SQL query. Please rephrase your question.")
-                result = {"columns": [], "rows": [], "row_count": 0}
 
-            # Follow-up suggestions
-            followups = []
-            if followup:
-                followups.append(followup)
-            try:
-                parsed_resp = parse_json_response("".join(full_response))
-                extra_fups = parsed_resp.get("followup_questions", [])
-                for f in extra_fups:
-                    if f not in followups:
-                        followups.append(f)
-            except Exception:
-                pass
+            # ── Step 6: Follow-ups ────────────────────────────────────────
             if followups:
                 await send_frame(ws, "followup", followups[:3])
 
-            # Save to session history
+            # ── Step 7: Save history ──────────────────────────────────────
             append_turn(session_id, AGENT_KEY, {
                 "q": question,
                 "sql": sql_to_execute,
@@ -266,6 +309,9 @@ async def handle_mitra_ws(ws: WebSocket, session_id: str, user: dict) -> None:
 
             await send_done(ws)
 
+    except WebSocketDisconnect:
+        # Client closed connection — normal, not an error
+        pass
     except Exception as exc:
         logger.exception("Mitra WS error: %s", exc)
         try:
