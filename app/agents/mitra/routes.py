@@ -49,13 +49,27 @@ def _get_suggestions(roles: list[str]) -> list[str]:
 
 
 def _parse_ws_user(ws: WebSocket) -> dict | None:
+    """Extract user from signed session cookie on WebSocket.
+
+    Starlette's SessionMiddleware encodes sessions as:
+        TimestampSigner.sign(base64(json_bytes))
+    so we must use TimestampSigner (not URLSafeTimedSerializer) to unsign,
+    then base64-decode and JSON-parse the payload.
+    """
+    import base64
+    import json
+    from itsdangerous import TimestampSigner, BadSignature, SignatureExpired
+
     cookie = ws.cookies.get(settings.session_cookie_name)
     if not cookie:
         return None
     try:
-        s = URLSafeTimedSerializer(settings.app_secret_key)
-        session_data = s.loads(cookie, max_age=settings.session_ttl_seconds)
+        signer = TimestampSigner(settings.app_secret_key)
+        data = signer.unsign(cookie, max_age=settings.session_ttl_seconds, return_timestamp=False)
+        session_data = json.loads(base64.b64decode(data))
         return session_data.get("user")
+    except (BadSignature, SignatureExpired):
+        return None
     except Exception:
         return None
 

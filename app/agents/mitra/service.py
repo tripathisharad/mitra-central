@@ -34,12 +34,13 @@ SCHEMAS:
 {schemas}
 
 RULES:
-1. Use proper SQL syntax compatible with Progress OpenEdge via ODBC.
-2. Always filter by domain: WHERE table.domain_field = '{domain}'
-3. Always include LIMIT {limit} at the end.
-4. Use user-friendly column aliases (AS "Descriptive Name") for all columns.
-5. Only use tables and columns from the provided schemas. Never guess.
-6. For date comparisons use standard SQL date functions.
+1. Use proper SQL syntax compatible with Progress OpenEdge via ODBC. Prefer Progress-specific constructs where appropriate.
+2. Always prefix table names with the schema `PUB.` (e.g. PUB.pt_mstr).
+3. Always filter by domain: WHERE table.domain_field = '{domain}'
+4. Always include `TOP {limit}` (Progress uses `TOP` instead of `LIMIT`). Place it immediately after `SELECT` when appropriate.
+5. Use user-friendly column aliases (AS "Descriptive Name") for all columns.
+6. Only use tables and columns from the provided schemas. Never guess.
+7. For date comparisons use standard SQL date functions supported by Progress/OpenEdge.
 
 {business_hint}
 
@@ -65,6 +66,9 @@ PRE-BUILT QUERY:
 RULES:
 - Use the EXACT query above in your response. Do NOT modify it.
 - Explain what the query does and how it helps the user.
+
+NOTES:
+- The environment uses Progress OpenEdge via ODBC. When explaining, assume `PUB.` schema prefixes and Progress `TOP` pagination where applicable.
 
 OUTPUT FORMAT — respond with ONLY this JSON (no markdown fences):
 {{

@@ -6,14 +6,13 @@ RULES = {
         "patterns": [r"low\s+(inventory|stock)", r"stock\s+shortage", r"inventory\s+shortage"],
         "logic": "Items where current quantity on hand is below safety stock threshold. Safety stock (pt_sfty_stk) is the minimum level a company wants to maintain.",
         "sql": (
-            "SELECT pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
+            "SELECT TOP {limit} pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
             "inv.in_site AS \"Site\", inv.in_qty_oh AS \"Qty On Hand\", "
             "pt.pt_sfty_stk AS \"Safety Stock\" "
-            "FROM in_mstr AS inv "
-            "JOIN pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
+            "FROM PUB.in_mstr AS inv "
+            "JOIN PUB.pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
             "WHERE inv.in_domain = '{domain}' AND inv.in_qty_oh < pt.pt_sfty_stk "
-            "ORDER BY (pt.pt_sfty_stk - inv.in_qty_oh) DESC "
-            "LIMIT {limit}"
+            "ORDER BY (pt.pt_sfty_stk - inv.in_qty_oh) DESC"
         ),
         "followup": "Would you like to see items below reorder point or check which items need to be ordered?",
     },
@@ -22,14 +21,13 @@ RULES = {
         "patterns": [r"what\s+(to|should\s+i)\s+order", r"items\s+to\s+order", r"need\s+to\s+order"],
         "logic": "Items where quantity on hand has fallen below the reorder point (ROP). ROP is the level at which a new order should be placed.",
         "sql": (
-            "SELECT pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
+            "SELECT TOP {limit} pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
             "inv.in_site AS \"Site\", inv.in_qty_oh AS \"Qty On Hand\", "
             "inv.in_rop AS \"Reorder Point\", inv.in_qty_ord AS \"Qty On Order\" "
-            "FROM in_mstr AS inv "
-            "JOIN pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
+            "FROM PUB.in_mstr AS inv "
+            "JOIN PUB.pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
             "WHERE inv.in_domain = '{domain}' AND inv.in_qty_oh < inv.in_rop "
-            "ORDER BY (inv.in_rop - inv.in_qty_oh) DESC "
-            "LIMIT {limit}"
+            "ORDER BY (inv.in_rop - inv.in_qty_oh) DESC"
         ),
         "followup": "Would you like me to show supplier details for these items?",
     },
@@ -38,15 +36,14 @@ RULES = {
         "patterns": [r"below\s+reorder\s+point", r"under\s+reorder\s+point"],
         "logic": "Items where quantity on hand is below the reorder point, sorted by urgency (biggest gap first).",
         "sql": (
-            "SELECT im.in_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
+            "SELECT TOP {limit} im.in_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
             "im.in_site AS \"Site\", im.in_qty_oh AS \"Qty On Hand\", "
             "pt.pt_rop AS \"Reorder Point\", pt.pt_sfty_stk AS \"Safety Stock\", "
             "pt.pt_buyer AS \"Buyer\", pt.pt_vend AS \"Vendor\" "
-            "FROM in_mstr AS im "
-            "JOIN pt_mstr AS pt ON im.in_part = pt.pt_part AND im.in_domain = pt.pt_domain "
+            "FROM PUB.in_mstr AS im "
+            "JOIN PUB.pt_mstr AS pt ON im.in_part = pt.pt_part AND im.in_domain = pt.pt_domain "
             "WHERE im.in_domain = '{domain}' AND im.in_qty_oh < pt.pt_rop AND pt.pt_rop > 0 "
-            "ORDER BY (pt.pt_rop - im.in_qty_oh) DESC "
-            "LIMIT {limit}"
+            "ORDER BY (pt.pt_rop - im.in_qty_oh) DESC"
         ),
         "followup": "Would you like to check if purchase orders exist for these items?",
     },
@@ -55,14 +52,13 @@ RULES = {
         "patterns": [r"slow\s+moving", r"dead\s+stock", r"excess\s+inventory", r"overstocked"],
         "logic": "Slow-moving items are those where quantity on hand significantly exceeds both average sales and average issuance, indicating the stock is not turning over.",
         "sql": (
-            "SELECT pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
+            "SELECT TOP {limit} pt.pt_part AS \"Part Number\", pt.pt_desc1 AS \"Description\", "
             "inv.in_site AS \"Site\", inv.in_qty_oh AS \"Qty On Hand\", "
             "inv.in_avg_sls AS \"Avg Monthly Sales\", inv.in_avg_iss AS \"Avg Monthly Issues\" "
-            "FROM in_mstr AS inv "
-            "JOIN pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
+            "FROM PUB.in_mstr AS inv "
+            "JOIN PUB.pt_mstr AS pt ON inv.in_part = pt.pt_part AND inv.in_domain = pt.pt_domain "
             "WHERE inv.in_domain = '{domain}' AND inv.in_qty_oh > 0 "
-            "AND inv.in_qty_oh > inv.in_avg_sls AND inv.in_qty_oh > inv.in_avg_iss "
-            "LIMIT {limit}"
+            "AND inv.in_qty_oh > inv.in_avg_sls AND inv.in_qty_oh > inv.in_avg_iss"
         ),
         "followup": "Would you like to see where these items are stored (locations)?",
     },

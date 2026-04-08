@@ -6,13 +6,12 @@ RULES = {
         "patterns": [r"open\s+purchase\s+orders?", r"open\s+po", r"pending\s+po"],
         "logic": "Purchase orders that have not been fully received or closed.",
         "sql": (
-            "SELECT po.po_nbr AS \"PO Number\", po.po_vend AS \"Supplier\", "
+            "SELECT TOP {limit} po.po_nbr AS \"PO Number\", po.po_vend AS \"Supplier\", "
             "po.po_ord_date AS \"Order Date\", po.po_due_date AS \"Due Date\", "
             "po.po_stat AS \"Status\", po.po_site AS \"Site\" "
-            "FROM po_mstr AS po "
+            "FROM PUB.po_mstr AS po "
             "WHERE po.po_domain = '{domain}' AND po.po_stat != 'C' "
-            "ORDER BY po.po_due_date ASC "
-            "LIMIT {limit}"
+            "ORDER BY po.po_due_date ASC"
         ),
         "followup": "Would you like to see line details or check for late deliveries?",
     },

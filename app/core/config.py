@@ -22,12 +22,13 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = 28800
 
     # QAD
-    qad_domain: str = "INDIA"
+    # Default QAD domain (set to the Progress environment domain)
+    qad_domain: str = "10USA"
     default_row_limit: int = 50
 
-    # ODBC
-    odbc_dsn: str = "QAD_PROGRESS"
-    odbc_user: str = ""
+    # ODBC - defaults useful for local testing; override via env/.env
+    odbc_dsn: str = "yashlocal"
+    odbc_user: str = "admin"
     odbc_password: str = ""
     odbc_connection_string: str = ""
 
