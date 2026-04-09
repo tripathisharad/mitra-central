@@ -221,7 +221,7 @@ def _data_table(doc: Document, headers: list[str], data_rows: list[list[str]]) -
 # ── Section builders — each checks _has() before rendering ────────────────────
 
 def _cover(doc: Document, data: dict) -> None:
-    company_name = data.get("company_name", "[COMPANY NAME]")
+    company_name = data.get("company_name", "Yash Technologies Pvt Ltd.")
     module_name  = data.get("module_name", "")
     module_title = data.get("module_title", "")
     module_code  = data.get("module_code", "")
@@ -535,7 +535,7 @@ def generate_document(title: str, sections: list[dict], *, subtitle: str = "Mitr
     pPr = h_para._p.get_or_add_pPr(); pBdr = OxmlElement("w:pBdr"); bot = OxmlElement("w:bottom")
     bot.set(qn("w:val"), "single"); bot.set(qn("w:sz"), "6"); bot.set(qn("w:color"), "1F3864"); bot.set(qn("w:space"), "1")
     pBdr.append(bot); pPr.append(pBdr)
-    company = data.get("company_name", "[COMPANY NAME]")
+    company = data.get("company_name", "Yash Technologies Pvt Ltd.")
     mod_name = data.get("module_name", title)
     r1 = h_para.add_run(f"{company}  |  QAD Custom Module — {mod_name}")
     r1.font.name = FONT; r1.font.size = Pt(9); r1.font.color.rgb = C["midGrey"]
