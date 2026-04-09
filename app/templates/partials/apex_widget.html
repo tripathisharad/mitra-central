@@ -1,16 +1,24 @@
 <!-- Apex floating RAG chatbot — WebSocket streaming -->
-<div x-data="apexWidget()" x-init="init()" class="fixed bottom-6 right-6 z-50">
-  <!-- launcher -->
+<div x-data="apexWidget()" x-init="init()" class="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex items-center">
+
+  <!-- ── Vertical ribbon launcher (matches reference) ── -->
   <button x-show="!open" @click="toggle()"
-          class="h-14 w-14 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-2xl shadow-brand-500/40 flex items-center justify-center hover:scale-105 transition"
+          class="bg-brand-800 hover:bg-brand-900 text-white shadow-lg
+                 flex items-center justify-center
+                 px-2 py-5 rounded-l-lg transition"
           title="Ask Apex">
-    <i data-lucide="sparkles" class="w-6 h-6"></i>
+    <span class="text-[11px] font-semibold tracking-widest"
+          style="writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.18em;">
+      APEX
+    </span>
   </button>
 
-  <!-- panel -->
+  <!-- ── Panel (opens to the left of the ribbon) ── -->
   <div x-show="open" x-transition
-       class="w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
-    <div class="h-14 px-4 flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-brand-600 to-brand-700 text-white">
+       class="w-96 h-[600px] bg-white rounded-l-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+
+    <!-- Panel header -->
+    <div class="h-14 px-4 flex items-center justify-between border-b border-slate-200 bg-brand-800 text-white">
       <div class="flex items-center gap-2">
         <i data-lucide="sparkles" class="w-5 h-5"></i>
         <div>
@@ -18,7 +26,9 @@
           <div class="text-[10px] opacity-80">User guide assistant</div>
         </div>
       </div>
-      <button @click="toggle()" class="p-1 hover:bg-white/10 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+      <button @click="toggle()" class="p-1 hover:bg-white/10 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
     </div>
 
     <!-- Domain picker (shown once per session) -->
@@ -27,7 +37,8 @@
       <div class="space-y-2">
         <template x-for="d in ['sales','purchasing','manufacturing']" :key="d">
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
-            <input type="checkbox" :value="d" x-model="selectedDomains" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+            <input type="checkbox" :value="d" x-model="selectedDomains"
+                   class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
             <span class="text-sm capitalize" x-text="d"></span>
           </label>
         </template>
@@ -35,7 +46,9 @@
       <button @click="confirmDomains()"
               :disabled="selectedDomains.length === 0"
               :class="selectedDomains.length === 0 ? 'opacity-40 cursor-not-allowed' : ''"
-              class="w-full bg-brand-600 text-white rounded-lg py-2 font-medium text-sm">Continue</button>
+              class="w-full bg-brand-800 text-white rounded-lg py-2 font-medium text-sm">
+        Continue
+      </button>
     </div>
 
     <!-- Messages -->
@@ -43,13 +56,14 @@
       <template x-for="(m, i) in messages" :key="i">
         <div :class="m.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
           <div :class="m.role === 'user'
-                         ? 'bg-brand-600 text-white'
+                         ? 'bg-brand-700 text-white'
                          : 'bg-slate-100 text-slate-800'"
                class="rounded-2xl px-4 py-2 max-w-[85%] text-sm">
             <div x-html="m.html || m.text" class="prose prose-sm max-w-none"></div>
           </div>
         </div>
       </template>
+
       <!-- Streaming -->
       <div x-show="streaming" class="flex justify-start">
         <div class="bg-slate-100 text-slate-800 rounded-2xl px-4 py-2 max-w-[85%] text-sm">
@@ -57,21 +71,26 @@
           <span class="inline-block w-1 h-3 bg-brand-500 animate-pulse align-middle"></span>
         </div>
       </div>
+
       <div x-show="loading && !streaming" class="flex justify-start">
         <div class="bg-slate-100 rounded-2xl px-4 py-2 text-sm text-slate-500">Thinking...</div>
       </div>
     </div>
 
+    <!-- Input -->
     <div x-show="!needsDomain" class="p-3 border-t border-slate-200">
       <form @submit.prevent="send()" class="flex gap-2">
         <input x-model="input" type="text" placeholder="Ask about user guides..."
                :disabled="loading"
-               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
+               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
         <button type="submit" :disabled="!input.trim() || loading"
-                class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-3 rounded-lg">
+                class="bg-brand-800 hover:bg-brand-900 disabled:opacity-40 text-white px-3 rounded-lg transition">
           <i data-lucide="send" class="w-4 h-4"></i>
         </button>
       </form>
     </div>
+
   </div>
+
 </div>

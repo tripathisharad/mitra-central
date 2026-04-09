@@ -1,93 +1,103 @@
 <!-- Shared chat layout for main-area agents (Mitra, Visual, QAD-Zone).
      Uses WebSocket streaming. The parent div must set x-data with the appropriate wsChat() call. -->
 <div class="h-full flex flex-col">
-  <header class="h-16 shrink-0 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+
+  <!-- ── Header (redesigned, clean text style) ── -->
+  <header class="h-14 shrink-0 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center">
-        <i data-lucide="{{ agent.icon }}" class="w-5 h-5"></i>
-      </div>
-      <div>
-        <div class="font-semibold text-slate-900 leading-tight">{{ agent.name }}</div>
-        <div class="text-xs text-slate-500">{{ agent.description }}</div>
-      </div>
+      <span class="text-sm font-semibold text-slate-700">{{ agent.name }}</span>
+      <span class="text-slate-300">|</span>
+      <span class="text-sm text-slate-400">{{ agent.description }}</span>
     </div>
     {% block header_extra %}{% endblock %}
   </header>
 
-  <main class="flex-1 overflow-y-auto px-6 py-6" x-ref="msgs">
-    <!-- Empty state -->
-    <template x-if="messages.length === 0">
-      <div class="max-w-3xl mx-auto">
-        <div class="text-center py-10">
-          <div class="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
-            <i data-lucide="{{ agent.icon }}" class="w-7 h-7 text-white"></i>
-          </div>
-          <h2 class="text-2xl font-bold text-slate-900">How can I help you today?</h2>
-          <p class="text-slate-500 mt-1">{{ agent.description }}</p>
-        </div>
-        {% if suggestions %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          {% for q in suggestions %}
-          <button @click="send('{{ q|replace("'", "\\'") }}')"
-                  class="text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-brand-400 hover:shadow-md transition">
-            <div class="flex items-start gap-3">
-              <i data-lucide="sparkles" class="w-4 h-4 text-brand-500 mt-0.5"></i>
-              <span class="text-sm text-slate-700">{{ q }}</span>
-            </div>
-          </button>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </template>
+  <!-- ── Main area ── -->
+  <div class="flex-1 relative overflow-hidden">
 
-    <!-- Messages -->
-    <div class="max-w-4xl mx-auto space-y-6">
-      <template x-for="(m, i) in messages" :key="i">
-        <div>
-          <!-- user -->
-          <template x-if="m.role === 'user'">
-            <div class="flex justify-end">
-              <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-5 py-3 max-w-[85%] whitespace-pre-wrap" x-text="m.text"></div>
+    <main class="h-full overflow-y-auto px-6 py-6" x-ref="msgs">
+
+      <!-- ── Empty state — original card design, original click pattern ── -->
+      <template x-if="messages.length === 0">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center py-10">
+            <div class="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
+              <i data-lucide="{{ agent.icon }}" class="w-7 h-7 text-white"></i>
             </div>
-          </template>
-          <!-- assistant -->
-          <template x-if="m.role === 'assistant'">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 prose-container" x-html="m.html"></div>
-          </template>
+            <h2 class="text-2xl font-bold text-slate-900">How can I help you today?</h2>
+            <p class="text-slate-500 mt-1">{{ agent.description }}</p>
+          </div>
+          {% if suggestions %}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            {% for q in suggestions %}
+            <button @click="send('{{ q|replace("'", "\\'") }}')"
+                    class="text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-brand-400 hover:shadow-md transition">
+              <div class="flex items-start gap-3">
+                <i data-lucide="sparkles" class="w-4 h-4 text-brand-500 mt-0.5"></i>
+                <span class="text-sm text-slate-700">{{ q }}</span>
+              </div>
+            </button>
+            {% endfor %}
+          </div>
+          {% endif %}
         </div>
       </template>
 
-      <!-- Streaming indicator -->
-      <div x-show="streaming" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-        <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-2">
-          <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-          <span x-text="statusText"></span>
+      <!-- ── Messages ── -->
+      <div class="max-w-4xl mx-auto space-y-6">
+        <template x-for="(m, i) in messages" :key="i">
+          <div>
+            <template x-if="m.role === 'user'">
+              <div class="flex justify-end">
+                <div class="bg-brand-600 text-white rounded-2xl rounded-br-sm px-5 py-3 max-w-[85%] whitespace-pre-wrap" x-text="m.text"></div>
+              </div>
+            </template>
+            <template x-if="m.role === 'assistant'">
+              <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 prose-container" x-html="m.html"></div>
+            </template>
+          </div>
+        </template>
+
+        <div x-show="streaming" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <div x-show="statusText" class="flex items-center gap-2 text-sm text-brand-600 mb-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+            <span x-text="statusText"></span>
+          </div>
+          <div class="prose-container" x-html="currentHtml"></div>
+          <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
         </div>
-        <div class="prose-container" x-html="currentHtml"></div>
-        <span class="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle"></span>
+
+        <div x-show="loading && !streaming" class="flex items-center gap-2 text-slate-500 text-sm">
+          <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+          <span>Thinking...</span>
+        </div>
+
+        <div class="h-24"></div>
       </div>
 
-      <div x-show="loading && !streaming" class="flex items-center gap-2 text-slate-500 text-sm">
-        <span class="inline-block w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-        <span>Thinking...</span>
-      </div>
-    </div>
-  </main>
+    </main>
 
-  <footer class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
-    <div class="max-w-4xl mx-auto">
+    <!-- ── Floating input (redesigned) ── -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4">
       {% block input_extra %}{% endblock %}
-      <form @submit.prevent="send()" class="flex gap-2">
-        <input x-model="input" type="text" placeholder="Ask {{ agent.name }}..."
+      <form @submit.prevent="send()"
+            class="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm px-3 py-2">
+        <input x-model="input" type="text"
+               placeholder="Ask {{ agent.name }}..."
                :disabled="loading"
-               class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50" />
-        <button type="submit" :disabled="!input.trim() || loading"
-                class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-5 rounded-xl font-medium flex items-center gap-2">
-          <i data-lucide="send" class="w-4 h-4"></i>
-          <span>Send</span>
+               class="flex-1 text-sm outline-none bg-transparent placeholder:text-slate-400 disabled:opacity-50 py-1" />
+        <button type="submit"
+                :disabled="!input.trim() || loading"
+                class="ml-2 h-8 w-16 rounded-lg bg-brand-800 hover:bg-brand-900
+                       disabled:opacity-40 text-white text-sm flex items-center justify-center shrink-0 transition">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
         </button>
       </form>
+      <p class="text-center text-xs text-slate-400 mt-2">
+        Mitra Central AI can make mistakes. Please verify critical ERP modifications.
+      </p>
     </div>
-  </footer>
+
+  </div>
+
 </div>

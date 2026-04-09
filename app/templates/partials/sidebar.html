@@ -1,47 +1,55 @@
 <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col">
-  <div class="h-16 flex items-center gap-3 px-5 border-b border-slate-200">
-    <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md shadow-brand-500/30">
-      <i data-lucide="sparkles" class="text-white w-5 h-5"></i>
-    </div>
-    <div>
-      <div class="font-bold text-slate-900 leading-tight">Mitra</div>
-      <div class="text-[10px] uppercase tracking-wider text-slate-400">Central</div>
-    </div>
+
+  <!-- Logo -->
+  <div class="h-14 flex items-center px-5 border-b border-slate-200">
+    <span class="text-lg font-semibold text-brand-900">Mitra</span>
   </div>
 
-  <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-    <div class="px-3 pb-2 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Agents</div>
+  <!-- Nav -->
+  <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+    <div class="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">AI Agents</div>
     {% for a in agents %}
     <a href="{{ a.route_prefix }}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition
-              {% if a.key == active %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900{% endif %}">
-      <i data-lucide="{{ a.icon }}" class="w-4 h-4 {% if a.key == active %}text-brand-600{% else %}text-slate-400 group-hover:text-slate-600{% endif %}"></i>
-      <span class="text-sm font-medium">{{ a.name }}</span>
+       class="flex items-center gap-3 px-3 py-2.5 rounded transition text-sm
+              {% if a.key == active %}
+                border-l-4 border-brand-800 bg-slate-50 font-semibold text-slate-800
+              {% else %}
+                border-l-4 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900
+              {% endif %}">
+      <span>{{ a.name }}</span>
     </a>
     {% endfor %}
   </nav>
 
-  <div class="p-3 border-t border-slate-200 space-y-1">
+  <!-- Bottom: settings + user -->
+  <div class="border-t border-slate-200 px-4 py-4 space-y-3 text-sm">
+
     <a href="/settings"
-       class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition">
+       class="flex items-center gap-2 text-slate-600 hover:text-brand-800 transition cursor-pointer">
       <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
-      <span class="text-sm font-medium">Settings</span>
+      <span>Settings</span>
     </a>
-    <div class="flex items-center gap-3 px-2 py-2 rounded-lg">
-      <div class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
-        <i data-lucide="user" class="w-4 h-4 text-slate-600"></i>
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-medium text-slate-900 truncate">{{ user.username }}</div>
-        <div class="text-[11px] text-slate-500 truncate">
-          {% for r in user.roles %}<span class="capitalize">{{ r }}</span>{% if not loop.last %} · {% endif %}{% endfor %}
+
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+          <i data-lucide="user" class="w-4 h-4 text-slate-500"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="font-medium text-slate-800 truncate">{{ user.username }}</div>
+          <div class="text-xs text-slate-500 truncate capitalize">
+            {% for r in user.roles %}{{ r }}{% if not loop.last %}, {% endif %}{% endfor %}
+          </div>
         </div>
       </div>
       <form method="post" action="/logout">
-        <button type="submit" class="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700" title="Sign out">
+        <button type="submit"
+                class="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100 transition"
+                title="Sign out">
           <i data-lucide="log-out" class="w-4 h-4"></i>
         </button>
       </form>
     </div>
+
   </div>
 </aside>
