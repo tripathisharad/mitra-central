@@ -2,13 +2,9 @@
 
 Modes:
 1. query        — RAG Q&A over custom programs (full module code stuffing) with chat history
-2. documentation — Generate corporate Word docs from custom code, with chat history
+2. documentation — Generate corporate Word docs using the structured template
 3. modernisation — Takes current_version + target_version directly from WS payload,
                    runs web research + LLM analysis, generates Word migration plan.
-                   No back-and-forth chat — one-shot triggered by the frontend form.
-
-The AI decides which module the question relates to (e-invoice, doa, etc.)
-based on the question content — NOT based on user login roles.
 """
 from __future__ import annotations
 
@@ -57,7 +53,6 @@ async def _handle_query(ws: WebSocket, question: str, session_id: str) -> None:
     code = load_module_code(module) if module else load_all_code_summary()
 
     history = load_history(session_id, AGENT_KEY)
-    # Build OpenAI-format history from saved turns (query mode only)
     chat_history = []
     for h in history[-6:]:
         if h.get("mode", "query") != "query":
@@ -86,8 +81,6 @@ RULES:
         await send_token(ws, token)
 
     answer_text = "".join(full_answer)
-
-    # Extract follow-up suggestions
     followups = []
     for line in answer_text.split("\n"):
         if line.strip().startswith(">>>"):
@@ -101,75 +94,140 @@ RULES:
 # ── Mode 2: Documentation ─────────────────────────────────────────────────────
 
 async def _handle_documentation(ws: WebSocket, question: str, session_id: str) -> None:
-    """Generate corporate Word doc from custom code — with chat history support."""
+    """Generate structured corporate Word doc from custom code using the template."""
     modules = list_modules()
     module = await _detect_module(question, modules)
 
     await send_status(ws, f"Loading code from module: {module or 'all'}...")
     code = load_module_code(module) if module else load_all_code_summary()
 
-    history = load_history(session_id, AGENT_KEY)
-    chat_history = []
-    for h in history[-4:]:
-        if h.get("mode", "documentation") != "documentation":
-            continue
-        if h.get("q"):
-            chat_history.append({"role": "user", "content": h["q"]})
-        if h.get("a"):
-            chat_history.append({"role": "assistant", "content": h["a"]})
-
-    await send_status(ws, "Generating document structure...")
+    await send_status(ws, "Analysing code and generating document structure...")
 
     system = """You are a QAD ERP technical writer producing corporate-quality documentation.
-Always return valid JSON only — no markdown fences, no preamble."""
+Always return valid JSON only — no markdown fences, no preamble, no extra text."""
 
-    prompt = f"""Based on the following QAD custom program code, create a professional technical document.
+    prompt = f"""Analyse the following QAD custom program code and produce structured documentation data.
 
 USER REQUEST: {question}
 
 CODE:
 {code}
 
-Create a well-structured corporate document. Include all relevant sections such as:
-- Overview / Introduction
-- Purpose and Scope
-- Technical Architecture (key programs, includes, data structures)
-- Business Logic and Process Flow
-- Database Tables and Fields Used (.df schema if present)
-- Configuration and Setup
-- Dependencies and Related Programs
-- Known Limitations or Considerations
+Return ONLY valid JSON with this exact structure. Populate every field from the actual code.
+If a field cannot be determined from the code, use a descriptive placeholder (never leave empty strings for required narrative fields).
 
-Return ONLY valid JSON:
 {{
-  "title": "Document Title",
-  "sections": [
-    {{"heading": "Section Title", "content": "Full content here...", "level": 1}},
-    {{"heading": "Sub-section", "content": "...", "level": 2}},
-    ...
-  ]
+  "module_name": "Short module name/code (e.g. DOA, E-INVOICE)",
+  "module_title": "Full descriptive title of the module",
+  "module_code": "Module code identifier",
+  "qad_version": "QAD version this runs on if determinable from code, else [QAD EE VERSION]",
+  "company_name": "[COMPANY NAME]",
+  "primary_purpose": "One-sentence purpose derived from code analysis",
+  "business_domain": "e.g. Financial Controls / Procurement / Compliance / Operations",
+  "owning_department": "[DEPARTMENT]",
+  "dev_status": "Production",
+  "criticality": "HIGH / MEDIUM / LOW — with brief justification based on the code",
+  "total_files": "Count of .p, .i, .df, .xml files found",
+  "key_capabilities": [
+    "Capability 1 — derived from code, in plain business language",
+    "Capability 2",
+    "Capability 3",
+    "Capability 4"
+  ],
+  "scope_in": "What processes and features this module covers, based on code analysis.",
+  "scope_out": "Adjacent processes handled by standard QAD or other customisations.",
+  "background": "2-3 paragraphs: why this module was built, the business problem, regulatory or operational driver, and how it fits the ERP landscape.",
+  "process_flow": "Numbered steps describing the business process from triggering event to final outcome. Use business language not code language.",
+  "user_roles": [
+    {{"role": "Role name e.g. Requestor", "responsibilities": "What they do in this module", "domain": "[DOMAIN]", "notes": "Restrictions or conditions"}}
+  ],
+  "architecture": "1-2 paragraphs: how this customisation is structured — standalone 4GL app, layered extension, persistent procedure library, or batch process. How deployed.",
+  "integrations": [
+    {{"system": "QAD module or external system", "code": "[CODE]", "type": "Shared Table / Trigger / API / File", "data": "Tables or fields", "direction": "Read / Write / Both"}}
+  ],
+  "custom_tables": [
+    {{"name": "Table name", "df_file": "source.df", "purpose": "What this table stores"}}
+  ],
+  "key_fields": [
+    {{"field": "TABLE.FIELD", "label": "Screen label", "type": "CHAR/INT/DEC/DATE", "key": "PK/FK/—", "desc": "Business meaning"}}
+  ],
+  "standard_tables": [
+    {{"table": "QAD table e.g. po_hdr", "owner": "QAD module", "access": "Read / Write / Both", "purpose": "Why accessed and which fields"}}
+  ],
+  "source_files": [
+    {{"name": "filename.p", "type": ".p", "lines": 450, "purpose": "One-line description of what this file does"}}
+  ],
+  "key_programs": [
+    {{
+      "name": "program_filename.p",
+      "type": "Maintenance / Inquiry / Report / Batch / Trigger / Persistent Procedure",
+      "called_by": "Caller programs or Direct menu launch",
+      "calls": "Programs or internal procedures this invokes",
+      "tables_write": "Tables where this program writes data",
+      "tables_read": "Tables read by this program",
+      "includes": ".i files included",
+      "logic_flow": "Step-by-step walkthrough of the program's main logic. Reference key variable names and block labels.",
+      "code_snippet": "5-15 lines of the most significant logic block from the actual code",
+      "error_handling": "ON ERROR blocks, validation failures, user-facing error messages. Note any FOR EACH loops on large tables, NO-LOCK vs SHARE-LOCK strategies."
+    }}
+  ],
+  "business_rules": [
+    {{"name": "Rule name", "description": "Plain-English rule — e.g. A record cannot be approved by the same user who created it.", "enforced_in": "Program where enforced", "consequence": "Error shown / Blocked / Audit entry"}}
+  ],
+  "config_params": [
+    {{"param": "Parameter name", "stored_in": "TABLE.FIELD or Config Program", "default": "Default value", "desc": "What changes when this is set"}}
+  ],
+  "audit_trail": "What is logged, which table stores it, when it is written, and what data is captured. If no audit trail exists, state this clearly.",
+  "security_objects": [
+    {{"object": "program.p or MENU ITEM", "type": "Program / Menu / Report", "role": "Required role or token", "notes": "Conditional access or restrictions"}}
+  ],
+  "test_cases": [
+    {{"id": "TC-001", "scenario": "Test scenario description", "steps": "Step-by-step actions", "expected": "Expected outcome", "status": "Pending"}}
+  ],
+  "known_issues": [
+    {{"id": "ISS-001", "severity": "High / Med / Low", "description": "Limitation or defect identified during code review", "workaround": "Workaround if any", "status": "Open"}}
+  ],
+  "glossary_terms": [
+    {{"term": "Module-specific term", "definition": "Definition extracted from variable names, screen labels, or code comments"}}
+  ],
+  "files_scanned": "Count and list of files analysed",
+  "lines_analysed": "Total estimated line count across all source files"
 }}
+
+Populate every array field with real data extracted from the code. For key_programs, include one entry per significant program (entry points, main logic files). Do not include empty arrays.
 """
 
-    raw = await openai_chat(system, prompt, history=chat_history, max_tokens=4096)
+    raw = await openai_chat(system, prompt, max_tokens=4096)
 
     try:
         parsed = parse_json_response(raw)
-        title = parsed.get("title", "QAD Custom Code Documentation")
-        sections = parsed.get("sections", [])
     except Exception:
-        title = "QAD Custom Code Documentation"
-        sections = [{"heading": "Documentation", "content": raw, "level": 1}]
+        logger.warning("Failed to parse JSON from documentation LLM")
+        # Fallback: use title-based approach with raw content as a section
+        title = question.replace("document", "").replace("documentation", "").strip().title() or "QAD Custom Module Documentation"
+        doc_url = generate_document(
+            title=title,
+            sections=[{"heading": "Module Documentation", "content": raw, "level": 1}],
+        )
+        summary = f"Documentation generated for the requested module."
+        await send_token(ws, summary)
+        await send_frame(ws, "doc", {"url": doc_url, "title": title})
+        append_turn(session_id, AGENT_KEY, {"q": question, "a": summary, "mode": "documentation", "doc_url": doc_url})
+        return
 
-    await send_status(ws, "Building Word document...")
-    doc_url = generate_document(title=title, sections=sections)
+    # The new doc_generator accepts both flat data dict (new) and sections list (old).
+    # Pass the structured parsed dict as sections for compatibility.
+    title = parsed.get("module_title") or parsed.get("module_name") or "QAD Custom Module Documentation"
+    module_label = parsed.get("module_name", module.upper() if module else "module")
 
-    # Stream a summary of what was produced
-    module_label = module.upper() if module else "all modules"
-    summary = f"**{title}**\n\nDocumentation generated for **{module_label}** covering {len(sections)} sections:\n"
-    for s in sections:
-        indent = "  " * (s.get("level", 1) - 1)
-        summary += f"{indent}- {s.get('heading', 'Section')}\n"
+    doc_url = generate_document(
+        title=title,
+        sections=[{"heading": "structured_data", "metadata": parsed}],
+    )
+
+    summary = f"**{title}**\n\nDocumentation generated for **{module_label}** covering:\n"
+    for cap in (parsed.get("key_capabilities") or []):
+        summary += f"- {cap}\n"
 
     for chunk in [summary[i:i + 30] for i in range(0, len(summary), 30)]:
         await send_token(ws, chunk)
@@ -177,10 +235,7 @@ Return ONLY valid JSON:
     await send_frame(ws, "doc", {"url": doc_url, "title": title})
 
     append_turn(session_id, AGENT_KEY, {
-        "q": question,
-        "a": summary,
-        "mode": "documentation",
-        "doc_url": doc_url,
+        "q": question, "a": summary, "mode": "documentation", "doc_url": doc_url,
     })
 
 
@@ -200,7 +255,6 @@ async def _handle_modernisation(
         await send_error(ws, "Both current_version and target_version are required.")
         return
 
-    # Save to session context for reference
     set_context(session_id, AGENT_KEY, {
         "current_version": current_version,
         "target_version": target_version,
@@ -237,13 +291,7 @@ async def _handle_modernisation(
 # ── Main WebSocket Handler ────────────────────────────────────────────────────
 
 async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
-    """Main WebSocket handler for QAD-Zone (3 modes).
-
-    Expected WS payload schemas:
-      Query:         {mode: "query", question: "..."}
-      Documentation: {mode: "documentation", question: "..."}
-      Modernisation: {mode: "modernisation", current_version: "...", target_version: "..."}
-    """
+    """Main WebSocket handler for QAD-Zone (3 modes)."""
     try:
         while True:
             data = await ws.receive_json()
@@ -253,9 +301,7 @@ async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                 if mode == "modernisation":
                     current_version = (data.get("current_version") or "").strip()
                     target_version = (data.get("target_version") or "").strip()
-                    await _handle_modernisation(
-                        ws, session_id, current_version, target_version
-                    )
+                    await _handle_modernisation(ws, session_id, current_version, target_version)
 
                 elif mode == "documentation":
                     question = (data.get("question") or "").strip()
@@ -264,7 +310,7 @@ async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
                     else:
                         await _handle_documentation(ws, question, session_id)
 
-                else:  # default: query
+                else:
                     question = (data.get("question") or "").strip()
                     if not question:
                         await send_error(ws, "Question is required.")
