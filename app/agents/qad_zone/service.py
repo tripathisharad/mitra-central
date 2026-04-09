@@ -5,10 +5,19 @@ Modes:
 2. documentation — Generate corporate Word docs using the structured template
 3. modernisation — Takes current_version + target_version directly from WS payload,
                    runs web research + LLM analysis, generates Word migration plan.
+
+File upload support:
+- Users can upload .p, .i, .xml files or .zip archives directly in Query and Docs modes.
+- Uploaded code is used as the primary code context (instead of disk modules).
+- ZIP archives are automatically extracted; all supported text files inside are included.
 """
 from __future__ import annotations
 
+import base64
+import io
 import logging
+import zipfile
+from pathlib import Path
 
 from fastapi import WebSocket
 
@@ -22,6 +31,85 @@ from app.agents.qad_zone.modernisation import analyse_modernisation
 logger = logging.getLogger(__name__)
 
 AGENT_KEY = "qadzone"
+
+# Supported text-based extensions for uploaded files
+_UPLOAD_EXTENSIONS = {".p", ".i", ".xml", ".cls", ".w", ".df", ".txt"}
+_MAX_UPLOAD_CHARS = 120_000
+
+
+def _extract_uploaded_code(files: list[dict]) -> str | None:
+    """Decode and extract code from uploaded files payload.
+
+    Each entry in `files` is:
+        {"name": "filename.ext", "data": "<base64-encoded content>"}
+
+    Returns concatenated code string, or None if no files provided.
+    Handles ZIP archives by extracting all supported text files inside.
+    """
+    if not files:
+        return None
+
+    parts: list[str] = []
+    total = 0
+
+    def _add(filename: str, content: str) -> bool:
+        nonlocal total
+        header = f"\n{'='*60}\n// UPLOADED FILE: {filename}\n{'='*60}\n"
+        chunk = header + content
+        if total + len(chunk) > _MAX_UPLOAD_CHARS:
+            remaining = _MAX_UPLOAD_CHARS - total
+            if remaining > 200:
+                parts.append(chunk[:remaining] + "\n// ... TRUNCATED ...")
+            return False
+        parts.append(chunk)
+        total += len(chunk)
+        return True
+
+    for file_entry in files:
+        filename: str = file_entry.get("name", "unknown")
+        b64_data: str = file_entry.get("data", "")
+        if not b64_data:
+            continue
+
+        try:
+            raw_bytes = base64.b64decode(b64_data)
+        except Exception as exc:
+            logger.warning("Failed to decode uploaded file %s: %s", filename, exc)
+            continue
+
+        ext = Path(filename).suffix.lower()
+
+        if ext == ".zip":
+            # Extract all supported text files from the ZIP
+            try:
+                with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
+                    for entry in zf.infolist():
+                        if entry.is_dir():
+                            continue
+                        inner_ext = Path(entry.filename).suffix.lower()
+                        if inner_ext not in _UPLOAD_EXTENSIONS:
+                            continue
+                        try:
+                            inner_bytes = zf.read(entry.filename)
+                            content = inner_bytes.decode("utf-8", errors="replace")
+                            inner_name = f"{filename}/{Path(entry.filename).name}"
+                            if not _add(inner_name, content):
+                                return "\n".join(parts)
+                        except Exception as exc:
+                            logger.warning("Failed to read %s from zip %s: %s",
+                                           entry.filename, filename, exc)
+            except Exception as exc:
+                logger.warning("Failed to open uploaded ZIP %s: %s", filename, exc)
+
+        elif ext in _UPLOAD_EXTENSIONS:
+            try:
+                content = raw_bytes.decode("utf-8", errors="replace")
+                if not _add(filename, content):
+                    return "\n".join(parts)
+            except Exception as exc:
+                logger.warning("Failed to decode text file %s: %s", filename, exc)
+
+    return "\n".join(parts) if parts else None
 
 
 async def _detect_module(question: str, available_modules: list[str]) -> str | None:
@@ -44,13 +132,24 @@ async def _detect_module(question: str, available_modules: list[str]) -> str | N
 
 # ── Mode 1: Query ─────────────────────────────────────────────────────────────
 
-async def _handle_query(ws: WebSocket, question: str, session_id: str) -> None:
-    """Q&A over custom programs — Groq routes to module, GPT-4o streams answer."""
-    modules = list_modules()
-    module = await _detect_module(question, modules)
+async def _handle_query(ws: WebSocket, question: str, session_id: str,
+                        uploaded_files: list[dict] | None = None) -> None:
+    """Q&A over custom programs — Groq routes to module, GPT-4o streams answer.
 
-    await send_status(ws, f"Loading code from module: {module or 'all'}...")
-    code = load_module_code(module) if module else load_all_code_summary()
+    If uploaded_files are provided they are used as the code context;
+    otherwise the on-disk module store is used as before.
+    """
+    uploaded_code = _extract_uploaded_code(uploaded_files or [])
+
+    if uploaded_code:
+        await send_status(ws, "Using uploaded code as context...")
+        code = uploaded_code
+        module = "uploaded"
+    else:
+        modules = list_modules()
+        module = await _detect_module(question, modules)
+        await send_status(ws, f"Loading code from module: {module or 'all'}...")
+        code = load_module_code(module) if module else load_all_code_summary()
 
     history = load_history(session_id, AGENT_KEY)
     chat_history = []
@@ -93,13 +192,24 @@ RULES:
 
 # ── Mode 2: Documentation ─────────────────────────────────────────────────────
 
-async def _handle_documentation(ws: WebSocket, question: str, session_id: str) -> None:
-    """Generate structured corporate Word doc from custom code using the template."""
-    modules = list_modules()
-    module = await _detect_module(question, modules)
+async def _handle_documentation(ws: WebSocket, question: str, session_id: str,
+                                uploaded_files: list[dict] | None = None) -> None:
+    """Generate structured corporate Word doc from custom code using the template.
 
-    await send_status(ws, f"Loading code from module: {module or 'all'}...")
-    code = load_module_code(module) if module else load_all_code_summary()
+    If uploaded_files are provided they are used as the code context;
+    otherwise the on-disk module store is used as before.
+    """
+    uploaded_code = _extract_uploaded_code(uploaded_files or [])
+
+    if uploaded_code:
+        await send_status(ws, "Using uploaded code for documentation...")
+        code = uploaded_code
+        module = "uploaded"
+    else:
+        modules = list_modules()
+        module = await _detect_module(question, modules)
+        await send_status(ws, f"Loading code from module: {module or 'all'}...")
+        code = load_module_code(module) if module else load_all_code_summary()
 
     await send_status(ws, "Analysing code and generating document structure...")
 
@@ -305,17 +415,21 @@ async def handle_qadzone_ws(ws: WebSocket, session_id: str, user: dict) -> None:
 
                 elif mode == "documentation":
                     question = (data.get("question") or "").strip()
-                    if not question:
-                        await send_error(ws, "Question is required for documentation mode.")
+                    uploaded_files = data.get("uploaded_files") or []
+                    if not question and not uploaded_files:
+                        await send_error(ws, "Question or uploaded files are required for documentation mode.")
                     else:
-                        await _handle_documentation(ws, question, session_id)
+                        if not question:
+                            question = "Generate documentation for the uploaded code"
+                        await _handle_documentation(ws, question, session_id, uploaded_files)
 
                 else:
                     question = (data.get("question") or "").strip()
+                    uploaded_files = data.get("uploaded_files") or []
                     if not question:
                         await send_error(ws, "Question is required.")
                     else:
-                        await _handle_query(ws, question, session_id)
+                        await _handle_query(ws, question, session_id, uploaded_files)
 
             except Exception as exc:
                 logger.exception("QAD-Zone handler error (mode=%s)", mode)

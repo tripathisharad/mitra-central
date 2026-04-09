@@ -240,26 +240,55 @@
         <div x-show="mode !== 'modernisation'"
              class="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4">
           <div class="relative flex items-center bg-white border border-slate-200 rounded-xl shadow-sm px-3 py-2">
+
+            <!-- File upload button -->
+            <label class="mr-1 shrink-0 cursor-pointer text-slate-400 hover:text-slate-600 transition"
+                   title="Upload .p .i .xml or .zip files">
+              <input type="file" class="hidden" multiple accept=".p,.i,.xml,.zip"
+                     @change="handleFileUpload($event)" />
+              <i data-lucide="paperclip" class="w-4 h-4"></i>
+            </label>
+
+            <!-- Uploaded files chips -->
+            <template x-if="uploadedFiles.length > 0">
+              <div class="flex items-center gap-1 mr-1 flex-wrap max-w-[40%]">
+                <template x-for="(f, idx) in uploadedFiles" :key="idx">
+                  <span class="inline-flex items-center gap-1 bg-brand-50 border border-brand-200 text-brand-700 rounded px-1.5 py-0.5 text-xs font-medium">
+                    <i data-lucide="file-code" class="w-3 h-3 shrink-0"></i>
+                    <span x-text="f.name" class="max-w-[80px] truncate"></span>
+                    <button type="button" @click.stop="removeFile(idx)"
+                            class="ml-0.5 text-brand-400 hover:text-brand-700 leading-none">&times;</button>
+                  </span>
+                </template>
+              </div>
+            </template>
+
             <input x-model="input" type="text"
                    @keydown.enter.prevent="sendChat()"
                    :placeholder="mode === 'documentation'
-                     ? 'e.g. Create documentation for the DOA module...'
-                     : 'Ask about custom QAD programs...'"
+                     ? (uploadedFiles.length ? 'Describe what to document (or press Enter)...' : 'e.g. Create documentation for the DOA module...')
+                     : (uploadedFiles.length ? 'Ask about the uploaded code...' : 'Ask about custom QAD programs...')"
                    :disabled="loading"
                    class="flex-1 text-sm outline-none bg-transparent placeholder:text-slate-400 disabled:opacity-50 py-1" />
             <button @click="sendChat()"
-                    :disabled="!input.trim() || loading"
+                    :disabled="(!input.trim() && uploadedFiles.length === 0) || loading"
                     class="ml-2 h-8 w-16 rounded-lg bg-brand-800 hover:bg-brand-900
                            disabled:opacity-40 text-white text-sm flex items-center justify-center shrink-0 transition">
               <i data-lucide="send" class="w-3.5 h-3.5"></i>
             </button>
           </div>
           <p class="text-center text-xs text-slate-400 mt-2">
-            <template x-if="mode === 'documentation'">
-              <span>Tip: Specify the module name, e.g. <em>"Document the DOA approval module"</em></span>
+            <template x-if="mode === 'documentation' && uploadedFiles.length === 0">
+              <span>Tip: Upload .p .i .xml .zip files or specify a module, e.g. <em>"Document the DOA approval module"</em></span>
             </template>
-            <template x-if="mode === 'query'">
-              <span>Tip: Ask specific questions, e.g. <em>"What does xxdoaproc.p do?"</em></span>
+            <template x-if="mode === 'documentation' && uploadedFiles.length > 0">
+              <span>Documentation will be generated from your uploaded code</span>
+            </template>
+            <template x-if="mode === 'query' && uploadedFiles.length === 0">
+              <span>Tip: Upload code files or ask e.g. <em>"What does xxdoaproc.p do?"</em></span>
+            </template>
+            <template x-if="mode === 'query' && uploadedFiles.length > 0">
+              <span>Ask any question about your uploaded code</span>
             </template>
           </p>
         </div>
@@ -292,6 +321,9 @@ function qadZone(wsPath) {
     currentDoc: null,
     currentFollowups: null,
     ws: null,
+
+    // File upload state
+    uploadedFiles: [],   // [{name, data (base64)}]
 
     modernForm: {
       currentVersion: '',
@@ -360,22 +392,74 @@ function qadZone(wsPath) {
 
     switchMode(key) {
       this.mode = key;
+      this.uploadedFiles = [];
       this._resetStream();
       this.$nextTick(() => window.lucide && lucide.createIcons());
     },
 
+    // ── File upload helpers ────────────────────────────────────────────────
+
+    handleFileUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+      const allowed = ['.p', '.i', '.xml', '.zip'];
+      const valid = files.filter(f => {
+        const ext = '.' + f.name.split('.').pop().toLowerCase();
+        return allowed.includes(ext);
+      });
+      if (valid.length !== files.length) {
+        alert('Only .p, .i, .xml and .zip files are supported.');
+      }
+      // Read each file as base64
+      valid.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          // result is "data:<mime>;base64,<data>" — strip prefix
+          const b64 = e.target.result.split(',')[1];
+          this.uploadedFiles.push({ name: file.name, data: b64 });
+          this.$nextTick(() => window.lucide && lucide.createIcons());
+        };
+        reader.readAsDataURL(file);
+      });
+      // Reset the input so the same file can be re-uploaded
+      event.target.value = '';
+    },
+
+    removeFile(idx) {
+      this.uploadedFiles.splice(idx, 1);
+    },
+
+    // ── Chat send ──────────────────────────────────────────────────────────
+
     sendChat() {
       const q = (this.input || '').trim();
-      if (!q || this.loading) return;
+      const hasFiles = this.uploadedFiles.length > 0;
+      if (!q && !hasFiles || this.loading) return;
+
+      // Build display label for user bubble
+      const displayQ = q || `📎 ${this.uploadedFiles.map(f => f.name).join(', ')}`;
       this.input = '';
-      this.messages.push({ role: 'user', text: q });
+
+      // Snapshot files then clear for next round
+      const filesToSend = [...this.uploadedFiles];
+      this.uploadedFiles = [];
+
+      this.messages.push({ role: 'user', text: displayQ });
       this._resetStream();
       this.loading = true;
       this.$nextTick(() => this.scrollBottom());
 
+      const payload = {
+        mode: this.mode,
+        question: q || (this.mode === 'documentation'
+          ? 'Generate documentation for the uploaded code'
+          : 'Analyse and explain the uploaded code'),
+        uploaded_files: filesToSend,
+      };
+
       const ws = new WebSocket(buildWsUrl(wsPath));
       this.ws = ws;
-      ws.onopen = () => { ws.send(JSON.stringify({ mode: this.mode, question: q })); };
+      ws.onopen = () => { ws.send(JSON.stringify(payload)); };
       ws.onmessage = (evt) => {
         let frame; try { frame = JSON.parse(evt.data); } catch (_) { return; }
         this._handleFrame(frame, 'chat');
