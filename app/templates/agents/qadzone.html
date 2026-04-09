@@ -56,7 +56,9 @@
                 <button @click="switchMode('query')"
                         class="group flex items-center gap-3 text-left bg-white border border-slate-200
                                rounded-lg p-4 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150">
-                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition"></div>
+                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition flex items-center justify-center">
+                    <i data-lucide="search" class="w-5 h-5 text-slate-600"></i>
+                  </div>
                   <div>
                     <div class="text-sm font-medium text-slate-700">Query</div>
                     <div class="text-xs text-slate-400 mt-0.5">Ask about custom QAD programs</div>
@@ -66,7 +68,9 @@
                 <button @click="switchMode('documentation')"
                         class="group flex items-center gap-3 text-left bg-white border border-slate-200
                                rounded-lg p-4 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150">
-                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition"></div>
+                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition flex items-center justify-center">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-600"></i>
+                  </div>
                   <div>
                     <div class="text-sm font-medium text-slate-700">Documentation</div>
                     <div class="text-xs text-slate-400 mt-0.5">Generate Word docs from code</div>
@@ -76,7 +80,9 @@
                 <button @click="switchMode('modernisation')"
                         class="group flex items-center gap-3 text-left bg-white border border-slate-200
                                rounded-lg p-4 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150">
-                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition"></div>
+                  <div class="h-10 w-10 rounded bg-slate-100 group-hover:bg-slate-200 shrink-0 transition flex items-center justify-center">
+                    <i data-lucide="rocket" class="w-5 h-5 text-slate-600"></i>
+                  </div>
                   <div>
                     <div class="text-sm font-medium text-slate-700">Modernisation</div>
                     <div class="text-xs text-slate-400 mt-0.5">Migration analysis between versions</div>
@@ -104,27 +110,13 @@
                     <select x-model="modernForm.currentVersion"
                             class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
                       <option value="">Select current version...</option>
-                      <optgroup label="QAD Enterprise Edition">
-                        <option value="QAD EE 2.0">QAD EE 2.0</option>
-                        <option value="QAD EE 2018">QAD EE 2018</option>
-                        <option value="QAD EE 2019">QAD EE 2019</option>
-                        <option value="QAD EE 2020">QAD EE 2020</option>
-                        <option value="QAD EE 2021">QAD EE 2021</option>
-                        <option value="QAD EE 2022">QAD EE 2022</option>
-                        <option value="QAD EE 2023">QAD EE 2023</option>
-                      </optgroup>
-                      <optgroup label="QAD Community Edition">
-                        <option value="QAD CE 2018">QAD CE 2018</option>
-                        <option value="QAD CE 2019">QAD CE 2019</option>
-                        <option value="QAD CE 2020">QAD CE 2020</option>
-                        <option value="QAD CE 2021">QAD CE 2021</option>
-                        <option value="QAD CE 2022">QAD CE 2022</option>
-                      </optgroup>
-                      <optgroup label="QAD Adaptive ERP">
-                        <option value="QAD Adaptive ERP 2022">QAD Adaptive ERP 2022</option>
-                        <option value="QAD Adaptive ERP 2023">QAD Adaptive ERP 2023</option>
-                        <option value="QAD Adaptive ERP 2024">QAD Adaptive ERP 2024</option>
-                      </optgroup>
+                      <template x-for="group in versions" :key="group.label">
+                        <optgroup :label="group.label">
+                          <template x-for="item in group.items" :key="item.value">
+                            <option :value="item.value" x-text="item.value"></option>
+                          </template>
+                        </optgroup>
+                      </template>
                     </select>
                     <input x-model="modernForm.currentCustom" type="text"
                            placeholder="Or type a custom version (e.g. QAD EE 2.1 SP3)"
@@ -144,18 +136,13 @@
                     <select x-model="modernForm.targetVersion"
                             class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
                       <option value="">Select target version...</option>
-                      <optgroup label="QAD Enterprise Edition">
-                        <option value="QAD EE 2019">QAD EE 2019</option>
-                        <option value="QAD EE 2020">QAD EE 2020</option>
-                        <option value="QAD EE 2021">QAD EE 2021</option>
-                        <option value="QAD EE 2022">QAD EE 2022</option>
-                        <option value="QAD EE 2023">QAD EE 2023</option>
-                      </optgroup>
-                      <optgroup label="QAD Adaptive ERP">
-                        <option value="QAD Adaptive ERP 2022">QAD Adaptive ERP 2022</option>
-                        <option value="QAD Adaptive ERP 2023">QAD Adaptive ERP 2023</option>
-                        <option value="QAD Adaptive ERP 2024">QAD Adaptive ERP 2024</option>
-                      </optgroup>
+                      <template x-for="group in versions" :key="group.label">
+                        <optgroup :label="group.label">
+                          <template x-for="item in group.items" :key="item.value">
+                            <option :value="item.value" x-text="item.value" x-show="isTargetVisible(item)"></option>
+                          </template>
+                        </optgroup>
+                      </template>
                     </select>
                     <input x-model="modernForm.targetCustom" type="text"
                            placeholder="Or type a custom version"
@@ -313,6 +300,52 @@ function qadZone(wsPath) {
       targetCustom: '',
     },
     modernResult: null,
+
+    // Known versions and ordering used to filter target options
+    versions: [
+      { label: 'QAD Enterprise Edition', items: [
+        { value: 'QAD EE 2.0', order: 0 },
+        { value: 'QAD EE 2018', order: 1 },
+        { value: 'QAD EE 2019', order: 2 },
+        { value: 'QAD EE 2020', order: 3 },
+        { value: 'QAD EE 2021', order: 4 },
+        { value: 'QAD EE 2022', order: 5 },
+        { value: 'QAD EE 2023', order: 6 },
+      ]},
+      { label: 'QAD Community Edition', items: [
+        { value: 'QAD CE 2018', order: 10 },
+        { value: 'QAD CE 2019', order: 11 },
+        { value: 'QAD CE 2020', order: 12 },
+        { value: 'QAD CE 2021', order: 13 },
+        { value: 'QAD CE 2022', order: 14 },
+      ]},
+      { label: 'QAD Adaptive ERP', items: [
+        { value: 'QAD Adaptive ERP 2022', order: 20 },
+        { value: 'QAD Adaptive ERP 2023', order: 21 },
+        { value: 'QAD Adaptive ERP 2024', order: 22 },
+      ]},
+    ],
+
+    // Return the numeric order for a version string (or -1 if unknown)
+    _versionOrder(value) {
+      if (!value) return -1;
+      // look up in versions
+      for (const g of this.versions) {
+        for (const it of g.items) {
+          if (it.value === value) return it.order;
+        }
+      }
+      return -1;
+    },
+
+    // Determine whether a target item should be visible given current selection
+    isTargetVisible(item) {
+      // always show when no current version selected
+      if (!this.modernForm.currentVersion) return true;
+      const curOrder = this._versionOrder(this.modernForm.currentVersion);
+      if (curOrder < 0) return true; // unknown current -> show all
+      return item.order > curOrder;
+    },
 
     init() {
       this.$el.addEventListener('click', (e) => {
